@@ -1,0 +1,99 @@
+# 
+#  NAME:
+#  Makefile.in
+#
+#  PURPOSE:
+#  Input file to configure for creation of Makefile.
+#
+#  REQUIREMENTS:
+#  NA
+#
+#  INPUT:
+#  NA
+#
+#  OUTPUT:
+#  NA
+#
+#  NOTES:
+#  NA
+#
+#  BUGS:
+#  NA
+#
+#  AUTHOR:
+#  Øystein Godøy, METNO/FOU, 20.09.2006 
+#
+#  MODIFIED:
+#  Øystein Godøy, METNO/FOU, 06.09.2007: Added tarball feature.
+#
+#  CVS_ID:
+#  $Id: Makefile.in,v 1.1 2009-02-13 23:23:13 steingod Exp $
+#   
+
+SHELL = /bin/sh
+
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+incdir = @includedir@
+libdir = @libdir@
+
+CFLAGS = @CFLAGS@
+
+CPPFLAGS = @CPPFLAGS@
+
+LDFLAGS = @LDFLAGS@
+
+LIBS = @LIBS@
+
+SUBDIRS = \
+   src 
+
+AUTOMATED_FILES = \
+   config.status \
+   config.log \
+   Makefile \
+   autom4te.cache
+
+.PHONY = all install clean distclean $(SUBDIRS)
+ 
+all: $(SUBDIRS)
+	@for dir in $(SUBDIRS); do \
+	  echo ""; \
+	  echo ""; \
+	  echo "==== Compiling directory $$dir ====="; \
+	  $(MAKE) -C $$dir || exit 1; \
+	done
+
+install:
+	@for dir in $(SUBDIRS); do \
+	  echo ""; \
+	  echo ""; \
+	  echo "==== Installing from directory $$dir ====="; \
+	  $(MAKE) -C $$dir install || exit 1; \
+	done
+
+clean:
+	@for dir in $(SUBDIRS); do \
+	  echo ""; \
+	  echo ""; \
+	  echo "==== Cleaning directory $$dir ====="; \
+	  $(MAKE) -C $$dir clean || exit 1; \
+	done
+
+distclean:
+	rm -rf $(AUTOMATED_FILES)
+	@for dir in $(SUBDIRS); do \
+	  echo ""; \
+	  echo ""; \
+	  echo "==== Distcleaning directory $$dir ====="; \
+	  $(MAKE) -C $$dir distclean || exit 1; \
+	done
+
+tarball:
+	$(MAKE) distclean
+	@echo "==== Creating tarball =====";
+	@echo $(CURDIR) | sed -e 's/\/.*\///' -e 's/.*/&\//'
+	tar -cvzf ../@PACKAGE_TARNAME@-@PACKAGE_VERSION@.tgz `echo $(CURDIR) | s ed -e 's/\/.*\///' -e 's/.*/..\/&\//'`
+

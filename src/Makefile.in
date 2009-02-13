@@ -1,0 +1,90 @@
+#
+# NAME:
+# Makefile.in
+#
+# PURPOSE:
+# Makefile
+#
+# REQUIREMENTS:
+# NA
+#
+# INPUT:
+# NA
+#
+# OUTPUT:
+# NA
+#
+# NOTES:
+# o make - builds library
+# o make install - installs libraryin LIBBASE (set below)
+# o make clean - removes object and archive files from src directory
+# o make distclean - performs make clean and removes installed parts
+# o make tarball - creates a tarball of library (does not work yet)
+#
+# BUGS:
+# NA
+#
+# AUTHOR:
+# Øystein Godøy, METNO/FOU, 17.09.2007 
+#
+# MODIFIED:
+# NA
+#
+# CVS_ID:
+# $Id: Makefile.in,v 1.1 2009-02-13 23:23:14 steingod Exp $
+#
+
+SHELL = /bin/sh
+
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+incdir = @includedir@
+libdir = @libdir@
+
+CFLAGS = @CFLAGS@ @DEFS@ -I./
+
+CPPFLAGS = @CPPFLAGS@
+
+LDFLAGS = @LDFLAGS@
+
+LIBS = @LIBS@
+
+
+HEADER_FILES = \
+  synopcol.h
+
+SRC_FILES = \
+  synopcol.c
+
+AUTOMATED_FILES = \
+   Makefile
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+.PHONY: clean install distclean
+
+BINFILE = synopcol
+
+OBJ_FILES := $(SRC_FILES:.c=.o)
+
+$(BINFILE): $(OBJ_FILES) 
+	$(CC) $(CFLAGS) -o $(BINFILE) $^ $(LDFLAGS) $(LIBS)
+
+$(OBJ_FILES): $(HEADER_FILES)
+
+clean:
+	find $(srcdir) -name "*.o" -exec rm -f {} \;
+	find $(srcdir) -name "*.a" -exec rm -f {} \;
+
+distclean:
+	$(MAKE) clean
+	rm -rf $(AUTOMATED_FILES)
+
+install:
+	install -d $(incdir)
+	install --mode=644 $(HEADER_FILES) $(incdir)
+	install -d $(bindir)
+	install --mode=644 $(BINFILE) $(bindir)

@@ -27,12 +27,12 @@
 # NA
 #
 # CVS_ID:
-# $Id: configure.ac,v 1.1 2009-02-13 23:23:13 steingod Exp $
+# $Id: configure.ac,v 1.2 2009-03-01 20:55:33 steingod Exp $
 #
 
 AC_PREREQ(2.59)
-AC_INIT([METNO SYNOPCOL], [0.1], [o.godoy@met.no])
-AC_CONFIG_SRCDIR([src/synopcol.h])
+AC_INIT([METNO FMSNOWCOVER], [0.1], [o.godoy@met.no])
+AC_CONFIG_SRCDIR([src/fmsnowcover.h])
 ##AC_CONFIG_HEADER([src/fmcol_config.h])
 
 # ########################################################### 

@@ -1,22 +1,6 @@
-/* *****************************************************************
- * COPYRIGHT:
- * EUMETSAT
- *
- * PRODUCED BY:
- * Norwegian Meteorological Institute (met.no)
- * Research and Development Department
- * P.O.BOX 43 - Blindern, N-0313 OSLO, NORWAY
- *
- * This SW was developed by met.no and the Danish Meteorological
- * Institute (DMI) within the context of the Co-operation Agreement
- * for the development of a pilot SAF on Ocean and Sea Ice.
- * *****************************************************************/
-
 /*
  * PURPOSE:
- * To determine whether a sea ice parameters for AVHRR pixels. This
- * software is the Product Area Processing (pap) package for OSI HL AVHRR
- * Ice processing.
+ * To determine whether a pixel is covered by snow for AVHRR pixels. 
  * 
  * INPUT:
  * o Multichannel AVHRR satellite imagery in MEOS/HDF format, filename
@@ -33,9 +17,6 @@
  * Not all dynamically allocated memory is properly freed yet, code should be
  * checked... Especially code connected with use of strtok...
  *
- * Output formats will be changed to OSIHDF5 and filters towards other
- * formats will be developed...
- * 
  * AUTHOR: 
  * Øystein Godøy, DNMI/FOU, 13/12/2000
  *
@@ -65,11 +46,11 @@
  * AVHRRICE_HAVE_NWP as quick way to comment out nwp.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.1 2009-02-13 23:23:14 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
  */
  
 /* #include <satimg.h> */
-#include <avhrrice_pap.h>
+#include <fmsnowcover.h>
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
@@ -130,7 +111,7 @@ int main(int argc, char *argv[]) {
 		cfgfile = (char *) malloc(FILELEN);
 		if (!cfgfile) {
 		    fmerrmsg(where,"Memory trouble.");
-		    exit(3);
+		    exit(FM_MEMALL_ERR);
 		}
 		if (!strcpy(cfgfile, optarg)) exit(0);
 		cflg++;
@@ -157,7 +138,7 @@ int main(int argc, char *argv[]) {
      */
     if (decode_cfg(cfgfile,&cfg) != 0) {
 	fmerrmsg(where,"Could not decode configuration");
-	exit(2);
+	exit(FM_IO_ERR);
     }
 
     /*
@@ -168,7 +149,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fmerrmsg(where,"Could not allocate memory for infile");
-	exit(2);
+	exit(FM_MEMALL_ERR);
     }
     sprintf(infile,"%s/%s",cfg.imgpath,fname);
     lmaskf = (char *) malloc(FILELEN);
@@ -176,7 +157,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fmerrmsg(where,"Could not allocate memory for lmaskf");
-	exit(2);
+	exit(FM_MEMALL_ERR);
     }
     if (strstr(fname,"ns") != NULL) {
 	sprintf(pname,"%s","ns");
@@ -194,7 +175,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fprintf(stderr," ERROR(main):  area not recognised\n");
-	exit(0);
+	exit(FM_VAROUTOFSCOPE_ERR);
     }
     /*setting path to file containing probability coeffs*/
     coffile = (char *) malloc(FILELEN);
@@ -202,11 +183,9 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",coffile);
 	fmerrmsg(where,"Could not allocate memory for coffile");
-	exit(2);
+	exit(FM_MEMALL_ERR);
     }
     sprintf(coffile,"%s",cfg.probtabname);
-    
-    
    
     /*
      * Open file with AVHRR information and read image
@@ -217,13 +196,13 @@ int main(int argc, char *argv[]) {
     fm_init_fmio_img(&img);
     if (fm_readdata(infile, &img)) {
 	fmerrmsg(where,"Could not open file...\n");
-	exit(0);
+	exit(FM_IO_ERR);
     }
 
     if (strstr(img.sa,"NOAA-15") ||  strstr(img.sa,"NOAA-16")) {
 	printf(" File discarded due to operational constraints on channel 3A\n");
 	fm_clear_fmio_img(&img);
-	exit(0);
+	exit(FM_VAROUTOFSCOPE_ERR);
 	
     }
     printf(" Satellite: %s\n", img.sa);
@@ -261,7 +240,7 @@ int main(int argc, char *argv[]) {
     	fmerrmsg(where,"No NWP data available.");
     	fm_clear_fmio_img(&img);
     	nwpice_free(&nwp);
-    	exit(2);
+    	exit(FM_IO_ERR);
     }
     #endif
 
@@ -306,8 +285,6 @@ int main(int argc, char *argv[]) {
      */
     rdstatcoeffs(coffile,&coeffs);
     
-
-    
     /*
      * Function "process_pixels4ice" is called to perform the objective
      * classification of the present satellite scene. Further description
@@ -335,7 +312,7 @@ int main(int argc, char *argv[]) {
 	sprintf(what,
 	"Could not allocate memory for classed array while processing : %s\n",infile);
 	fmerrmsg(where,what);
-	exit(0);
+	exit(FM_MEMALL_ERR);
     }
     fmlogmsg(where,"Estimating ice probability");
     status = process_pixels4ice(img, NULL, NULL, nwp,
@@ -389,6 +366,7 @@ int main(int argc, char *argv[]) {
 	sprintf(what,"Trouble processing: %s",infile);
 	fmerrmsg(where,what);
     }
+    /*
     opfn = (char *) malloc(FILELEN+5);
     if (!opfn) exit(3);
     sprintf(opfn,"%s/ice_%s_%4d%02d%02d%02d%02d.mitiff", 
@@ -398,11 +376,11 @@ int main(int argc, char *argv[]) {
     fmlogmsg(where,what);
     store_mitiff_result(opfn,classed,clinfo);
     free(opfn);
+    */
 
     fprintf(stdout," ================================================\n");
 
-    return(0);
-    exit(0);
+    exit(FM_OK);
 }
 
 /*
@@ -420,13 +398,13 @@ void usage() {
     fprintf(stdout,
 	    " <cfgfile>: Configuration file containing data paths etc.\n");
     fprintf(stdout,
-	    " <infile>: Input MEOS/HDF file, path is taken from cfgfile.\n");
+	    " <infile>: Input METSAT file, path is taken from cfgfile.\n");
     fprintf(stdout,"\n");
     fprintf(stdout," The configuration file contains all necessary data\n");
     fprintf(stdout," paths for production of ice tiles. Output names are\n");
     fprintf(stdout," automatically created.\n");
     fprintf(stdout,"\n");
-    exit(0);
+    exit(FM_OK);
 }
 
 /*
@@ -449,13 +427,13 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
     dummy = (char *) malloc(FILELEN*sizeof(char));
     if (!dummy) {
 	fprintf(stderr,"%s%s\n",errmsg,"Could not allocate memory");
-	return(3);
+	return(FM_MEMALL_ERR);
     }
 
     fp = fopen(cfgfile,"r");
     if (!fp) {
 	fprintf(stderr,"%s%s\n",errmsg,"Could not open config file.");
-	return(2);
+	return(FM_IO_ERR);
     }
 
     while (fgets(dummy,FILELEN,fp) != NULL) {
@@ -464,7 +442,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    fprintf(stderr,"%s%s\n",errmsg,
 		    "Input string larger than FILELEN");
 	    free(dummy);
-	    return(2);
+	    return(FM_IO_ERR);
 	}
 
 	pt = strtok(dummy,token);
@@ -472,14 +450,14 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	if (!pt) {
 	    fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 	    free(dummy);
-	    return(2);
+	    return(FM_IO_ERR);
 	}
 	if (strncmp(pt,"IMGPATH",7) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
 		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 		free(dummy);
-		return(2);
+		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->imgpath,"%s",pt);
@@ -488,7 +466,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    if (!pt) {
 		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 		free(dummy);
-		return(2);
+		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->cmpath,"%s",pt);
@@ -497,7 +475,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    if (!pt) {
 		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 		free(dummy);
-		return(2);
+		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->lmpath,"%s",pt);
@@ -506,7 +484,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    if (!pt) {
 		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 		free(dummy);
-		return(2);
+		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->productpath,"%s",pt);
@@ -515,7 +493,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    if (!pt) {
 		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
 		free(dummy);
-		return(2);
+		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->probtabname,"%s",pt);
@@ -526,7 +504,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 
     free(dummy);
 
-    return(0);
+    return(FM_OK);
 }
 
 
@@ -554,7 +532,7 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   if (!fpi) { 
     sprintf(what,"Unable to open file %s",coeffsfile);
     fmerrmsg(where,what);
-    exit(0);
+    return(FM_IO_ERR);
   }
 
   while ( (read = getline(&line,&len,fpi)) != -1 ) {
@@ -563,7 +541,7 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
     if (j >= OSI_MSGLENGTH) {
       sprintf(what,"Line length exceeds maximum length");
       fmerrmsg(where,what);
-      exit(0);
+      return(FM_IO_ERR);
     }
     if ((line[j] == '#') || line[j] == '\n') continue;
     if (sscanf(line,"%s%s %c%lf%lf%lf",dummies.surf,dummies.feat,
@@ -571,7 +549,7 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
       sprintf(what,"Wrong format on line '%s %s..'\n",dummies.surf,
 	      dummies.feat);
       fmerrmsg(where,what);
-      exit(0);
+      return(FM_IO_ERR);
     }
     else {
       locstatcoeffs(dummies,cof);
@@ -585,7 +563,7 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   if (line) free(line);
   fclose(fpi);
   
-  return(0);
+  return(FM_OK);
 }
 
 
@@ -634,7 +612,7 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
     exit(0);
   }
 
-  return(0);
+  return(FM_OK);
 }
 
 /*place stat. parameters at right location in statcoeffstr*/
@@ -645,7 +623,7 @@ int putcoeffs(featstr *feat, dummystr dummies) {
   feat->par3 = dummies.par3;
   feat->count++; /*will equal the number of times a specific set of
 		    parameters are read. Should ideally not differ from one..*/
-  return(0);
+  return(FM_OK);
 }
 
 

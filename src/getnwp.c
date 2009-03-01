@@ -1,17 +1,3 @@
-/* *****************************************************************
- * COPYRIGHT:
- * EUMETSAT
- *
- * PRODUCED BY:
- * Norwegian Meteorological Institute (met.no)
- * Research and Development Department
- * P.O.BOX 43 - Blindern, N-0313 OSLO, NORWAY
- *
- * This SW was developed by met.no and the Danish Meteorological
- * Institute (DMI) within the context of the Co-operation Agreement
- * for the development of a pilot SAF on Ocean and Sea Ice.
- * *****************************************************************/
-
 /*
  * NAME:
  * nwp_read.c
@@ -55,7 +41,7 @@
  * NA
  *
  * CVS_ID:
- * $Id: getnwp.c,v 1.1 2009-02-13 23:23:14 steingod Exp $
+ * $Id: getnwp.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
  */
 
 #include <getnwp.h>

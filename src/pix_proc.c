@@ -1,24 +1,9 @@
-/* *****************************************************************
- * COPYRIGHT:
- * EUMETSAT
- *
- * PRODUCED BY:
- * Norwegian Meteorological Institute (met.no)
- * Research and Development Department
- * P.O.BOX 43 - Blindern, N-0313 OSLO, NORWAY
- *
- * This SW was developed by met.no and the Danish Meteorological
- * Institute (DMI) within the context of the Co-operation Agreement
- * for the development of a pilot SAF on Ocean and Sea Ice.
- * *****************************************************************/
 /*
  * NAME:
  * NA
  *
  * PURPOSE:
- * Pixelwise processing of sea ice parameters using AVHRR data as input.
- * This software belongs to the Product Area Processing (pap) package for
- * the OSI HL Ice module.
+ * Pixelwise processing of snow parameters using AVHRR data as input.
  *
  * Index numbers correspond to specific surface classes. Se code for
  * further description of which index numbers that are used as these
@@ -74,7 +59,7 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.1 2009-02-13 23:23:14 steingod Exp $
+ * $Id: pix_proc.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -84,7 +69,7 @@
 /* #include <fmimage.h> */
 #include <fmio.h>
 #include <fmutil.h>
-#include <avhrrice_pap.h>
+#include <fmsnowcover.h>
 
 int process_pixels4ice(fmio_img img, unsigned char *cmask[], 
     unsigned char *lmask, nwpice nwp, datafield *probs, 

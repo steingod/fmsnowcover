@@ -1,0 +1,7 @@
+#
+# Initialization file for fmsnowcover
+# 
+IMGPATH /disk1/data/cryorisk/input_tst
+LMPATH /home/mariak/fmprojects/fmsnowcover
+PRODUCTPATH /disk1/data/cryorisk/output_tst
+PROBTABNAME /home/mariak/fmprojects/fmsnowcover/src/statcoeffs_4surfs.txt

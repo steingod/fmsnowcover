@@ -46,7 +46,7 @@
  * AVHRRICE_HAVE_NWP as quick way to comment out nwp.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.3 2009-03-10 13:22:23 mariak Exp $
  */
  
 /* #include <satimg.h> */
@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
     char *infile, *cfgfile, *coffile;
     unsigned char *classed;
     cfgstruct cfg;
+    FILE *lmask_located; /*Can be removed later*/
     fmio_mihead iinfo = {
 	"Not known",
 	00, 00, 00, 00, 0000, -9, 
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
     fmtime reftime;
     nwpice nwp;
     /*PRODhead header;*/
-    /*osihdf lm;*/
+    osihdf lm;
     osihdf ice;
     osi_dtype ice_ft[OSI_OLEVELS]={OSI_FLOAT,OSI_FLOAT,OSI_FLOAT};
     char *ice_desc[OSI_OLEVELS]={"P(ice)","P(water)","P(cloud)"};
@@ -249,22 +250,23 @@ int main(int argc, char *argv[]) {
      * This should probably be added agin in the future, but is left out
      * until further evaluation...
      */
-    /*
+    
     lm.d = NULL;
-    fprintf(stdout," Reading land/sea mask (GTOPO30 based):\n %s\n", lmaskf);
-    status = read_hdf5_product(lmaskf, &lm, 0);
-    if (status != 0) {
+    if (lmask_located = fopen(lmaskf,"r")) {
+      fprintf(stdout," Reading land/sea mask (GTOPO30 based):\n %s\n", lmaskf);
+      status = read_hdf5_product(lmaskf, &lm, 0);
+      if (status != 0) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fprintf(stderr,"%s%s\n", fmerrmsg,"Could not read land/sea mask");
 	return(1);
-    }
-    fprintf(stdout," Checking for area consistency with land/sea mask...\n");
-    if (((int) floorf(lm.h.Bx*10.)) != ((int) floorf(img.Bx*10.)) || 
-	((int) floorf(lm.h.By*10.)) != ((int) floorf(img.By*10.)) ||
-	((int) floorf(lm.h.Ax*10.)) != ((int) floorf(img.Ax*10.)) || 
-	((int) floorf(lm.h.Ay*10.)) != ((int) floorf(img.Ay*10.)) ||
-	lm.h.iw != img.iw || lm.h.ih != img.ih) {
+      }
+      fprintf(stdout," Checking for area consistency with land/sea mask...\n");
+      if (((int) floorf(lm.h.Bx*10.)) != ((int) floorf(img.Bx*10.)) || 
+	  ((int) floorf(lm.h.By*10.)) != ((int) floorf(img.By*10.)) ||
+	  ((int) floorf(lm.h.Ax*10.)) != ((int) floorf(img.Ax*10.)) || 
+	  ((int) floorf(lm.h.Ay*10.)) != ((int) floorf(img.Ay*10.)) ||
+	  lm.h.iw != img.iw || lm.h.ih != img.ih) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fprintf(stderr,"%s%s",fmerrmsg,"Inconsistency between land/sea mask ");
@@ -276,15 +278,29 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr," iw: %d %d\n", lm.h.iw, img.iw);
 	fprintf(stderr," ih: %d %d\n", lm.h.ih, img.ih);
 	return(1);
+      }
     }
-    */
+    else {
+      fprintf(stdout," Landmask unavailable, coefficients for ");
+      fprintf(stdout,"sea/ice/cloud will be used throughout\n");
+    }
+    
+    
  
 
     /*
      * Loading the statistical coeffs into statcoeffs struct           
      */
-    rdstatcoeffs(coffile,&coeffs);
-    
+    fprintf(stdout," Reading file containing statistical coefficients:\n %s\n",
+	    coffile);
+      
+    if (rdstatcoeffs(coffile,&coeffs) != 0) {
+      sprintf(what," Trouble when reading coefficients, exiting");
+      fmerrmsg(where,what);
+      exit(FM_IO_ERR);
+    }
+
+
     /*
      * Function "process_pixels4ice" is called to perform the objective
      * classification of the present satellite scene. Further description
@@ -315,8 +331,16 @@ int main(int argc, char *argv[]) {
 	exit(FM_MEMALL_ERR);
     }
     fmlogmsg(where,"Estimating ice probability");
-    status = process_pixels4ice(img, NULL, NULL, nwp,
+
+    if (lm.d == NULL) {
+      status = process_pixels4ice(img, NULL, NULL, nwp,
 				ice.d, classed, 2, coeffs);
+    }
+    else {
+      status = process_pixels4ice(img, NULL, (unsigned char *)(lm.d->data), 
+				  nwp, ice.d, classed, 2, coeffs);
+    }
+    
     if (status) {
 	sprintf(what,"Something failed while processing pixels of %s",infile);
 	fmerrmsg(where,what);
@@ -602,7 +626,16 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
     else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->water.dt,dummies);
     else featflg++;
   }
-    else surfflg++;
+  else if (!strcmp(dummies.surf,"land")) {
+    if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->land.a1,dummies);
+    else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->land.r21,dummies);
+    else if (!strcmp(dummies.feat,"d34")) putcoeffs(&cof->land.d34,dummies);
+    else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->land.r3a1,dummies);
+    else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->land.r3b1,dummies);
+    else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->land.dt,dummies);
+    else featflg++;
+  }
+  else surfflg++;
 
   if (featflg || surfflg) {
     if (featflg) sprintf(what,"Feature '%s' not recognised for surface %s\n",

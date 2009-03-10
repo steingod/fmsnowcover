@@ -43,7 +43,7 @@
  * renaming existing r31 to r3a1)
  *
  * CVS_ID:
- * $Id: probest.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: probest.c,v 1.3 2009-03-10 13:30:30 mariak Exp $
  */
 
 #include <stdio.h>
@@ -55,14 +55,14 @@
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
     double r21, r3a1, d34, r3b1;
-    double pa1gi, pa1gc, pa1gw;
+    double pa1gi, pa1gc, pa1gf;
     double pr21gi, pr3a1gi, pdtgi, pd34gi, pr3b1gi;
-    double pr21gw, pr3a1gw, pdtgw, pd34gw, pr3b1gw;
+    double pr21gf, pr3a1gf, pdtgf, pd34gf, pr3b1gf;
     double pr21gc, pr3a1gc, pdtgc, pd34gc, pr3b1gc;
     /*double pigr21, pigr31;*/
     double denomsum;
-    /*double pice=0.3333, pwater=0.3333, pcloud=0.3333;*/
-    double pice=0.5, pwater=0.5, pcloud=0.5;
+    /*double pice=0.3333, pfree=0.3333, pcloud=0.3333;*/
+    double pice=0.5, pfree=0.5, pcloud=0.5;
     /*double picegobs;*/
     
  
@@ -109,19 +109,37 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     pdtgc = findprob( cof.cloud.dt, cpa.tdiff,"cloud dt");
 
 
-    pa1gw = findprob( cof.water.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"water a1");
+    if (cpa.lmask > 1) { /*Landmask recognized land*/
+      pa1gf = findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
+      
+      pr21gf = findprob( cof.land.r21, r21,"land r21" );
 
-    pr21gw = findprob( cof.water.r21, r21,"water r21" );
-   
-    if (cpa.daytime3b) {
-	pd34gw = findprob( cof.water.d34, d34,"water d34" );
-	if (pd34gw < 0) pd34gw = 0;
-	pr3b1gw = findprob( cof.water.r3b1, r3b1, "water r3b1");
-    } else {
- 	pr3a1gw = findprob( cof.water.r3a1, r3a1,"water r3a1" );
-    }
+      if (cpa.daytime3b) {
+	pd34gf = findprob( cof.land.d34, d34,"land d34" );
+	if (pd34gf < 0) pd34gf = 0;
+	pr3b1gf = findprob( cof.land.r3b1, r3b1, "land r3b1");
+      } else {
+ 	pr3a1gf = findprob( cof.land.r3a1, r3a1,"land r3a1" );
+      }
+      
+      pdtgf = findprob( cof.land.dt, cpa.tdiff,"land dt" );
+
+    } else {/*Landmask recognized water, or no landmask in use*/
     
-    pdtgw = findprob( cof.water.dt, cpa.tdiff,"water dt" );
+      pa1gf=findprob( cof.water.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"water a1");
+
+      pr21gf = findprob( cof.water.r21, r21,"water r21" );
+   
+      if (cpa.daytime3b) {
+	pd34gf = findprob( cof.water.d34, d34,"water d34" );
+	if (pd34gf < 0) pd34gf = 0;
+	pr3b1gf = findprob( cof.water.r3b1, r3b1, "water r3b1");
+      } else {
+ 	pr3a1gf = findprob( cof.water.r3a1, r3a1,"water r3a1" );
+      }
+      
+      pdtgf = findprob( cof.water.dt, cpa.tdiff,"water dt" );
+    }
 
 
     /*
@@ -136,32 +154,32 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
 
     #ifndef AVHRRICE_HAVE_NWP
-    pdtgi = pdtgc = pdtgw = 1.;
+    pdtgi = pdtgc = pdtgf = 1.;
     #endif
 
     /*Used to easily remove signatures when testing*/
-    /*pa1gi = pa1gw = pa1gc = 1.; */
-    /*pr21gi= pr21gw= pr21gc= 1.; */
-    /*pr3b1gi=pr3b1gc=pr3b1gw=1.; */
+    /*pa1gi = pa1gf = pa1gc = 1.; */
+    /*pr21gi= pr21gf= pr21gc= 1.; */
+    /*pr3b1gi=pr3b1gf=pr3b1gc=1.; */
 
 
     /*This one is to be properly removed when finished testing*/
-    pd34gi= pd34gc= pd34gw= 1.;
+    pd34gi= pd34gc= pd34gf= 1.;
 
 
     if (cpa.daytime3b) {
 	denomsum = (pr21gi*pd34gi*pr3b1gi*pa1gi*pdtgi*pice)
-	    +(pr21gw*pd34gw*pr3b1gw*pa1gw*pdtgw*pwater)
+	    +(pr21gf*pd34gf*pr3b1gf*pa1gf*pdtgf*pfree)
 	    +(pr21gc*pd34gc*pr3b1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pd34gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
-	p->pwater = (pr21gw*pd34gw*pr3b1gw*pa1gw*pdtgw*pwater)/denomsum;
+	p->pfree = (pr21gf*pd34gf*pr3b1gf*pa1gf*pdtgf*pfree)/denomsum;
 	p->pcloud = (pr21gc*pd34gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
     } else {
 	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
-	    +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)
+	    +(pr21gf*pr3a1gf*pa1gf*pdtgf*pfree)
 	    +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)/denomsum;
-	p->pwater = (pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)/denomsum;
+	p->pfree = (pr21gf*pr3a1gf*pa1gf*pdtgf*pfree)/denomsum;
 	p->pcloud = (pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
     }
 
@@ -289,7 +307,7 @@ int probest_hanneh(pinpstr cpa, probstr *p) {
     *pcgobs =   (float)((pa21gc*pa31gc) / denomsum);
     */
     p->pice = (float)((pa21gi*pa31gi) / denomsum);
-    p->pwater =   (float)((pa21gw*pa31gw) / denomsum);
+    p->pfree =   (float)((pa21gw*pa31gw) / denomsum);
     p->pcloud =   (float)((pa21gc*pa31gc) / denomsum);
 
     /* 

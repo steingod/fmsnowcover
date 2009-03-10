@@ -23,7 +23,7 @@
  *
  * OUTPUT:
  * pice - Probability of ice given the AVHRR observations
- * pwater - Probability of open water given the AVHRR observations
+ * pfree - Probability of open water or land given the AVHRR observations
  * pcloud - Probability of cloud given the AVHRR observations
  * classed - Classed ice probability
  *
@@ -59,7 +59,7 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: pix_proc.c,v 1.3 2009-03-10 13:30:14 mariak Exp $
  */ 
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
     cpar.saz= -99;
     cpar.tdiff=-99;
     cpar.algo = algo;
-    
+    cpar.lmask = -99;
 
     fm_img2slopes(img,&calib); /*collects gain and intercept*/
 
@@ -201,6 +201,16 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    cpar.cmask = (short) cmask[0][i];
 	    cpar.lmask = (short) lmask[i];
 	    */
+	    if (lmask == NULL) {
+	      if (i == 0) {
+		fmlogmsg(where,
+		"Landmask not in use, using coefficients for sea/ice/cloud");
+	      }
+	    }
+	    else {
+	      cpar.lmask = (short) lmask[i];
+	    }
+
 	    /*
 	     * Added hack on 3A due to saturation problems...
 	     */
@@ -252,8 +262,23 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 			"Something went wrong in pixel processing of %d",i);
 		fmerrmsg(where,what);
 	    }
+	    
+	    /*adding this to prevent classification when probabilities
+	      do not sum to 1*/
+	    if (p.pice+p.pfree+p.pcloud < 0.95 || p.pice+p.pfree+p.pcloud > 1.05){
+	      continue; /*OSIMISVAL_NOCOV*/
+	    }
+ 
+	    /*Also, if r3b1 is too large the probabilities can end up
+	      as nan (not fixed by statement above). Trying
+	      this:*/
+	    if (isnan(p.pice) || isnan(p.pfree) || isnan(p.pcloud)) {
+	      continue;
+	    }
+
+
 	    ((float *) probs[0].data)[i] = p.pice;
-	    ((float *) probs[1].data)[i] = p.pwater;
+	    ((float *) probs[1].data)[i] = p.pfree;
 	    ((float *) probs[2].data)[i] = p.pcloud;
 
 

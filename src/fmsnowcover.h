@@ -41,9 +41,9 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.3 2009-03-10 13:29:29 mariak Exp $
  */ 
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,7 +131,7 @@ typedef struct {
  */
 typedef struct {
     double pice;
-    double pwater;
+    double pfree;
     double pcloud;
 } probstr;
 
@@ -159,6 +159,7 @@ typedef struct {
   surfstr ice;
   surfstr cloud;
   surfstr water;
+  surfstr land;
 } statcoeffstr;
 
 typedef struct {

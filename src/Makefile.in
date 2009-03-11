@@ -31,7 +31,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: Makefile.in,v 1.2 2009-03-01 21:24:15 steingod Exp $
+# $Id: Makefile.in,v 1.3 2009-03-11 17:18:11 steingod Exp $
 #
 
 SHELL = /bin/sh
@@ -62,7 +62,8 @@ SRC_FILES = \
   probest.c \
   normalpdf.c \
   getnwp.c \
-  gammapdf.c
+  gammapdf.c \
+  store_mitiff_product.c
 
 AUTOMATED_FILES = \
    Makefile

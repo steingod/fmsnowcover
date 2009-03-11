@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.4 2009-03-11 16:30:59 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.5 2009-03-11 17:18:11 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -57,7 +57,7 @@
 #define OSI_MSGLENGTH 255 /* String length for system messages */
 #define MAXCHANNELS 6
 #define MAXIMGSIZE 1440000
-#define CLASSLIMITS 12	    /* Maximum number of classes in image */
+#define CLASSLIMITS 20	    /* Maximum number of classes in image */
 #define CLASSLIMITSSTR 66   /* Length of string classlimit */
 #define NWP_NOFIELDS 5
 #define OSI_OLEVELS 3 /* Number of output levels */
@@ -80,7 +80,6 @@
 #define FILENAME 50
 #define FILELEN 256		/* Standard length of filenames incl path */
 #define ANGBOX 10 	 	/* Box size in pixels for viewing geomtry */
-
 
 /*
  * Data structure to hold configuration info etc.
@@ -194,7 +193,7 @@ int probest_hanneh(struct miclpa cpa, float *picegobs, float *pwgobs,
 double gammapdf(double alpha, double beta, double x);
 double normalpdf(double mean, double sdev, double x);
 
-void store_mitiff_result(char *outfile, unsigned char *icep,fmio_mihead img);
+void store_mitiff_result(char *outfile, unsigned char *icep, fmio_mihead img);
 int rdstatcoeffs(char *coeffsfile, statcoeffstr *coeffs);
 double findprob(featstr feat, double x, char *whereami);
 int locstatcoeffs (dummystr dummies, statcoeffstr *cof);

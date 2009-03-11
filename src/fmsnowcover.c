@@ -46,16 +46,15 @@
  * AVHRRICE_HAVE_NWP as quick way to comment out nwp.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.3 2009-03-10 13:22:23 mariak Exp $
+ * $Id: fmsnowcover.c,v 1.4 2009-03-11 17:18:11 steingod Exp $
  */
  
-/* #include <satimg.h> */
 #include <fmsnowcover.h>
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
 
-    char *where="avhrrice_pap";
+    char *where="fmsnowcover";
     char what[OSI_MSGLENGTH];
     extern char *optarg;
     int ret;
@@ -63,7 +62,6 @@ int main(int argc, char *argv[]) {
     short status;
     unsigned int size;
     char fname[FILENAME];
-    /*char cfname[FILENAME];*/
     char pname[4];
     char *lmaskf, *opfn;
     char *infile, *cfgfile, *coffile;
@@ -76,26 +74,16 @@ int main(int argc, char *argv[]) {
 	{0, 0, 0, 0, 0, 0, 0, 0}, 
 	0, 0, 0, 0., 0., -999., -999.
     };
-    /*
-    struct mihead cminfo = {
-	"Not known",
-	00, 00, 00, 00, 0000, -9, 
-	{0, 0, 0, 0, 0, 0, 0, 0}, 
-	0, 0, 0, 0., 0., -999., -999.
-    };
-    */
     fmio_mihead clinfo = {
 	"Not known",
 	00, 00, 00, 00, 0000, -9, 
 	{0, 0, 0, 0, 0, 0, 0, 0}, 
 	0, 0, 0, 0., 0., -999., -999.
     };
-    /*struct miheadpal cmpal;*/
     fmio_img img;
     fmucsref refucs;
     fmtime reftime;
     nwpice nwp;
-    /*PRODhead header;*/
     osihdf lm;
     osihdf ice;
     osi_dtype ice_ft[OSI_OLEVELS]={OSI_FLOAT,OSI_FLOAT,OSI_FLOAT};
@@ -114,11 +102,11 @@ int main(int argc, char *argv[]) {
 		    fmerrmsg(where,"Memory trouble.");
 		    exit(FM_MEMALL_ERR);
 		}
-		if (!strcpy(cfgfile, optarg)) exit(0);
+		if (!strcpy(cfgfile, optarg)) exit(FM_OK);
 		cflg++;
                 break;
 	    case 'i':
-		if (!strcpy(fname, optarg)) exit(0);
+		if (!strcpy(fname, optarg)) exit(FM_OK);
 		iflg++;
                 break;
 	    default:
@@ -130,7 +118,7 @@ int main(int argc, char *argv[]) {
 
     fprintf(stdout,"\n");
     fprintf(stdout," ================================================\n");
-    fprintf(stdout," |                  AVHRRICE_PAP                |\n");
+    fprintf(stdout," |                  FMSNOWCOVER                 |\n");
     fprintf(stdout," ================================================\n");
     fprintf(stdout,"\n");
  
@@ -378,7 +366,7 @@ int main(int argc, char *argv[]) {
     clinfo.By = img.By;
 
     opfn = (char *) malloc(FILELEN+5);
-    if (!opfn) exit(3);
+    if (!opfn) exit(FM_IO_ERR);
     sprintf(opfn,"%s/ice_%s_%4d%02d%02d%02d%02d.hdf5", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
@@ -390,9 +378,8 @@ int main(int argc, char *argv[]) {
 	sprintf(what,"Trouble processing: %s",infile);
 	fmerrmsg(where,what);
     }
-    /*
     opfn = (char *) malloc(FILELEN+5);
-    if (!opfn) exit(3);
+    if (!opfn) exit(FM_IO_ERR);
     sprintf(opfn,"%s/ice_%s_%4d%02d%02d%02d%02d.mitiff", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
@@ -400,7 +387,6 @@ int main(int argc, char *argv[]) {
     fmlogmsg(where,what);
     store_mitiff_result(opfn,classed,clinfo);
     free(opfn);
-    */
 
     fprintf(stdout," ================================================\n");
 
@@ -444,26 +430,26 @@ void usage() {
 
 int decode_cfg(char cfgfile[],cfgstruct *cfg) {
     FILE *fp;
-    char *errmsg=" ERROR(decode_cfg): ";
+    char *where="decode_cfg";
     char *dummy,*pt;
     char *token=" ";
 
     dummy = (char *) malloc(FILELEN*sizeof(char));
     if (!dummy) {
-	fprintf(stderr,"%s%s\n",errmsg,"Could not allocate memory");
+	fmerrmsg(where,"%s","Could not allocate memory");
 	return(FM_MEMALL_ERR);
     }
 
     fp = fopen(cfgfile,"r");
     if (!fp) {
-	fprintf(stderr,"%s%s\n",errmsg,"Could not open config file.");
+	fmerrmsg(where,"%s","Could not open config file.");
 	return(FM_IO_ERR);
     }
 
     while (fgets(dummy,FILELEN,fp) != NULL) {
 	if (strncmp(dummy,"#",1) == 0) continue;
 	if (strlen(dummy) > (FILELEN-50)) {
-	    fprintf(stderr,"%s%s\n",errmsg,
+	    fmerrmsg(where,"%s",
 		    "Input string larger than FILELEN");
 	    free(dummy);
 	    return(FM_IO_ERR);
@@ -472,14 +458,14 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	pt = strtok(dummy,token);
 
 	if (!pt) {
-	    fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+	    fmerrmsg(where,"%s","strtok trouble.");
 	    free(dummy);
 	    return(FM_IO_ERR);
 	}
 	if (strncmp(pt,"IMGPATH",7) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -488,7 +474,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"CMPATH",6) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -497,7 +483,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"LMPATH",6) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -506,7 +492,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"PRODUCTPATH",11) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -515,7 +501,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	}else if (strncmp(pt,"PROBTABNAME",11) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fprintf(stderr,"%s%s\n",errmsg,"strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -642,7 +628,7 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
 	      dummies.feat,dummies.surf);
     if (surfflg) sprintf(what,"Surface '%s' not recognised\n",dummies.surf);
     fmerrmsg(where,what);
-    exit(0);
+    exit(FM_OK);
   }
 
   return(FM_OK);

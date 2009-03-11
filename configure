@@ -1252,8 +1252,10 @@ Optional Packages:
                           either as DIR or INC,LIB
   --with-usenwp=DIR       the location of mandatory libusenwp files and
                           library either as DIR or INC,LIB
-  --with-osihdf5=DIR      the location of optional libosihdf5 files and
+  --with-osihdf5=DIR      the location of mandatory libosihdf5 files and
                           library either as DIR or INC,LIB
+  --with-tiff=DIR         the location of mandatory libtiff files and library
+                          either as DIR or INC,LIB
   --with-fmutil=DIR       the location of mandatory libfmutil files and
                           library either as DIR or INC,LIB
   --with-fmio=DIR         the location of mandatory libfmio files and library
@@ -3161,8 +3163,9 @@ case $with_osihdf5 in
       LIBS="-losihdf5 $LIBS"
      ;;
     no)
-    { echo "$as_me:$LINENO: WARNING: Building library with libosihdf5 dependent functions disabled" >&5
-echo "$as_me: WARNING: Building library with libosihdf5 dependent functions disabled" >&2;}
+    { { echo "$as_me:$LINENO: error: libosihdf5 is required" >&5
+echo "$as_me: error: libosihdf5 is required" >&2;}
+   { (exit 1); exit 1; }; }
      ;;
     *,*)
       addincdir="`echo $with_osihdf5 | cut -f1 -d,`"
@@ -3245,7 +3248,6 @@ fi
 { echo "$as_me:$LINENO: result: $ac_cv_lib_osihdf5_init_osihdf" >&5
 echo "${ECHO_T}$ac_cv_lib_osihdf5_init_osihdf" >&6; }
 if test $ac_cv_lib_osihdf5_init_osihdf = yes; then
-  fm_have_libosihdf5="yes";
 
 cat >>confdefs.h <<_ACEOF
 #define $synopcol_have_feat 1
@@ -3254,14 +3256,128 @@ _ACEOF
 else
   CPPFLAGS="$saved_CPPFLAGS";LDFLAGS="$saved_LDFLAGS";
 	LIBS="$saved_LIBS";
-	{ echo "$as_me:$LINENO: WARNING: =======================================" >&5
-echo "$as_me: WARNING: =======================================" >&2;};
-	{ echo "$as_me:$LINENO: WARNING: Did not find libosihdf5" >&5
-echo "$as_me: WARNING: Did not find libosihdf5" >&2;};
-	{ echo "$as_me:$LINENO: WARNING: Disabling libosihdf5 dependent functions" >&5
-echo "$as_me: WARNING: Disabling libosihdf5 dependent functions" >&2;};
-	{ echo "$as_me:$LINENO: WARNING: =======================================" >&5
-echo "$as_me: WARNING: =======================================" >&2;}
+	{ { echo "$as_me:$LINENO: error: Did not find libosihdf5, this is required to continue" >&5
+echo "$as_me: error: Did not find libosihdf5, this is required to continue" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+fi
+
+
+
+saved_CPPFLAGS="$CPPFLAGS"
+saved_LDFLAGS="$LDFLAGS"
+saved_LIBS="$LIBS"
+
+# Check whether --with-tiff was given.
+if test "${with_tiff+set}" = set; then
+  withval=$with_tiff;
+else
+  with_tiff=yes
+fi
+
+case $with_tiff in
+    yes)
+     echo "Using system implementation of libtiff"
+      LIBS="-ltiff $LIBS"
+     ;;
+    no)
+    { { echo "$as_me:$LINENO: error: libtiff is required" >&5
+echo "$as_me: error: libtiff is required" >&2;}
+   { (exit 1); exit 1; }; }
+     ;;
+    *,*)
+      addincdir="`echo $with_tiff | cut -f1 -d,`"
+      addlibdir="`echo $with_tiff | cut -f2 -d,`"
+      CPPFLAGS="$CPPFLAGS -I$addincdir"
+      LDFLAGS="$LDFLAGS -L$addlibdir"
+      LIBS="-Wl,-rpath=$addlibdir -ltiff $LIBS"
+#      LIBS="-ltiff $LIBS"
+      ;;
+    *)
+      addincdir="$with_tiff/include"
+      addlibdir="$with_tiff/lib"
+      CPPFLAGS="$CPPFLAGS -I$addincdir"
+      LDFLAGS="$LDFLAGS -L$addlibdir"
+      LIBS="-Wl,-rpath=$addlibdir -ltiff $LIBS"
+#      LIBS="-ltiff $LIBS"
+      ;;
+esac
+if test  $with_tiff != no; then
+    synopcol_have_feat=SYNOPCOL_HAVE_LIBTIFF
+    { echo "$as_me:$LINENO: checking for TIFFOpen in -ltiff" >&5
+echo $ECHO_N "checking for TIFFOpen in -ltiff... $ECHO_C" >&6; }
+if test "${ac_cv_lib_tiff_TIFFOpen+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltiff  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char TIFFOpen ();
+int
+main ()
+{
+return TIFFOpen ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_tiff_TIFFOpen=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_tiff_TIFFOpen=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_tiff_TIFFOpen" >&5
+echo "${ECHO_T}$ac_cv_lib_tiff_TIFFOpen" >&6; }
+if test $ac_cv_lib_tiff_TIFFOpen = yes; then
+
+cat >>confdefs.h <<_ACEOF
+#define $synopcol_have_feat 1
+_ACEOF
+
+else
+  CPPFLAGS="$saved_CPPFLAGS";LDFLAGS="$saved_LDFLAGS";
+	LIBS="$saved_LIBS";
+	{ { echo "$as_me:$LINENO: error: Did not find libtiff, this is required to continue" >&5
+echo "$as_me: error: Did not find libtiff, this is required to continue" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 fi

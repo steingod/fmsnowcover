@@ -27,7 +27,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: configure.ac,v 1.3 2009-03-01 20:58:08 steingod Exp $
+# $Id: configure.ac,v 1.4 2009-03-11 17:18:11 steingod Exp $
 #
 
 AC_PREREQ(2.59)
@@ -171,7 +171,9 @@ FM_REQLIB([usenwp],[getfield_],[-lg2c])
 #FM_USELIB([usenwp],[getfield_],[-lg2c])
 fi
 
-FM_USELIB([osihdf5],[init_osihdf])
+FM_REQLIB([osihdf5],[init_osihdf])
+
+FM_REQLIB([tiff],[TIFFOpen])
 
 #if test "x$fm_have_libhlhdf" == "xyes"; then
 #FM_REQLIB([pps_common],[readCloudType])

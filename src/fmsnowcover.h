@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.3 2009-03-10 13:29:29 mariak Exp $
+ * $Id: fmsnowcover.h,v 1.4 2009-03-11 16:30:59 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -52,7 +52,6 @@
 #include <projects.h>
 #include <fmutil.h>
 #include <fmio.h>
-/* #include <satimg.h> */
 #include <getnwp.h>
 
 #define OSI_MSGLENGTH 255 /* String length for system messages */

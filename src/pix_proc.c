@@ -59,16 +59,9 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.3 2009-03-10 13:30:14 mariak Exp $
+ * $Id: pix_proc.c,v 1.4 2009-03-11 16:30:59 steingod Exp $
  */ 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-/* #include <fmimage.h> */
-#include <fmio.h>
-#include <fmutil.h>
 #include <fmsnowcover.h>
 
 int process_pixels4ice(fmio_img img, unsigned char *cmask[], 
@@ -162,8 +155,8 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    cart.col = xc;
 	    ucspos = fmind2ucs(ucs0, cart);
 	    geop = fmucs2geo(ucspos,MI);
-	    /* UCS2latlon(ucs0, cart, &geop); */
 	    zsun = fmsolarzenith(timeidsec, geop);
+
 
 
 	    if (zsun < 85.) {

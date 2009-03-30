@@ -1,6 +1,6 @@
 /*
  * NAME:
- * NA
+ * fmsnowcover.h
  *
  * PURPOSE:
  * NA
@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.5 2009-03-11 17:18:11 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.6 2009-03-30 13:42:53 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -54,18 +54,17 @@
 #include <fmio.h>
 #include <getnwp.h>
 
-#define OSI_MSGLENGTH 255 /* String length for system messages */
+#define FMSNOWCOVER_MSGLENGTH 255 /* String length for system messages */
 #define MAXCHANNELS 6
 #define MAXIMGSIZE 1440000
 #define CLASSLIMITS 20	    /* Maximum number of classes in image */
 #define CLASSLIMITSSTR 66   /* Length of string classlimit */
 #define NWP_NOFIELDS 5
-#define OSI_OLEVELS 3 /* Number of output levels */
-#define OSIMISVAL_NOCOV -991 
-#define OSIMISVAL_NIGHT -990 
-#define OSIMISVAL_LAND -992
-#define OSIMISVAL_3A -993
-
+#define FMSNOWCOVER_OLEVELS 3 /* Number of output levels */
+#define FMSNOWCOVERMISVAL_NOCOV -991 
+#define FMSNOWCOVERMISVAL_NIGHT -990 
+#define FMSNOWCOVERMISVAL_LAND -992
+#define FMSNOWCOVERMISVAL_3A -993
 
 /*
  * Some useful data constants to use in the software.
@@ -86,6 +85,7 @@
  */
 typedef struct {
     char imgpath[FILELEN];
+    char nwppath[FILELEN];
     char cmpath[FILELEN];
     char lmpath[FILELEN];
     char productpath[FILELEN];

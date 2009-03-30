@@ -2698,7 +2698,7 @@ echo "$as_me: error: libproj is required" >&2;}
       ;;
 esac
 if test  $with_proj != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBPROJ
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBPROJ
     { echo "$as_me:$LINENO: checking for pj_init in -lproj" >&5
 echo $ECHO_N "checking for pj_init in -lproj... $ECHO_C" >&6; }
 if test "${ac_cv_lib_proj_pj_init+set}" = set; then
@@ -2763,7 +2763,7 @@ echo "${ECHO_T}$ac_cv_lib_proj_pj_init" >&6; }
 if test $ac_cv_lib_proj_pj_init = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -2817,7 +2817,7 @@ echo "$as_me: error: libhdf5 is required" >&2;}
       ;;
 esac
 if test  $with_hdf5 != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBHDF5
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBHDF5
     { echo "$as_me:$LINENO: checking for H5Fopen in -lhdf5" >&5
 echo $ECHO_N "checking for H5Fopen in -lhdf5... $ECHO_C" >&6; }
 if test "${ac_cv_lib_hdf5_H5Fopen+set}" = set; then
@@ -2882,7 +2882,7 @@ echo "${ECHO_T}$ac_cv_lib_hdf5_H5Fopen" >&6; }
 if test $ac_cv_lib_hdf5_H5Fopen = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -2937,7 +2937,7 @@ echo "$as_me: WARNING: Building library with libmi dependent functions disabled"
       ;;
 esac
 if test  $with_mi != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBMI
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBMI
     { echo "$as_me:$LINENO: checking for mrfelt_ in -lmi" >&5
 echo $ECHO_N "checking for mrfelt_ in -lmi... $ECHO_C" >&6; }
 if test "${ac_cv_lib_mi_mrfelt_+set}" = set; then
@@ -3003,7 +3003,7 @@ if test $ac_cv_lib_mi_mrfelt_ = yes; then
   fm_have_libmi="yes";
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -3064,7 +3064,7 @@ echo "$as_me: error: libusenwp is required" >&2;}
       ;;
 esac
 if test  $with_usenwp != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBUSENWP
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBUSENWP
     { echo "$as_me:$LINENO: checking for getfield_ in -lusenwp" >&5
 echo $ECHO_N "checking for getfield_ in -lusenwp... $ECHO_C" >&6; }
 if test "${ac_cv_lib_usenwp_getfield_+set}" = set; then
@@ -3129,7 +3129,7 @@ echo "${ECHO_T}$ac_cv_lib_usenwp_getfield_" >&6; }
 if test $ac_cv_lib_usenwp_getfield_ = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -3185,7 +3185,7 @@ echo "$as_me: error: libosihdf5 is required" >&2;}
       ;;
 esac
 if test  $with_osihdf5 != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBOSIHDF5
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBOSIHDF5
     { echo "$as_me:$LINENO: checking for init_osihdf in -losihdf5" >&5
 echo $ECHO_N "checking for init_osihdf in -losihdf5... $ECHO_C" >&6; }
 if test "${ac_cv_lib_osihdf5_init_osihdf+set}" = set; then
@@ -3250,7 +3250,7 @@ echo "${ECHO_T}$ac_cv_lib_osihdf5_init_osihdf" >&6; }
 if test $ac_cv_lib_osihdf5_init_osihdf = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -3304,7 +3304,7 @@ echo "$as_me: error: libtiff is required" >&2;}
       ;;
 esac
 if test  $with_tiff != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBTIFF
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBTIFF
     { echo "$as_me:$LINENO: checking for TIFFOpen in -ltiff" >&5
 echo $ECHO_N "checking for TIFFOpen in -ltiff... $ECHO_C" >&6; }
 if test "${ac_cv_lib_tiff_TIFFOpen+set}" = set; then
@@ -3369,7 +3369,7 @@ echo "${ECHO_T}$ac_cv_lib_tiff_TIFFOpen" >&6; }
 if test $ac_cv_lib_tiff_TIFFOpen = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -3427,7 +3427,7 @@ echo "$as_me: error: libfmutil is required" >&2;}
       ;;
 esac
 if test  $with_fmutil != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBFMUTIL
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBFMUTIL
     { echo "$as_me:$LINENO: checking for fmivec in -lfmutil" >&5
 echo $ECHO_N "checking for fmivec in -lfmutil... $ECHO_C" >&6; }
 if test "${ac_cv_lib_fmutil_fmivec+set}" = set; then
@@ -3492,7 +3492,7 @@ echo "${ECHO_T}$ac_cv_lib_fmutil_fmivec" >&6; }
 if test $ac_cv_lib_fmutil_fmivec = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else
@@ -3546,7 +3546,7 @@ echo "$as_me: error: libfmio is required" >&2;}
       ;;
 esac
 if test  $with_fmio != no; then
-    synopcol_have_feat=SYNOPCOL_HAVE_LIBFMIO
+    fmsnowcover_have_feat=FMSNOWCOVER_HAVE_LIBFMIO
     { echo "$as_me:$LINENO: checking for fm_readheader in -lfmio" >&5
 echo $ECHO_N "checking for fm_readheader in -lfmio... $ECHO_C" >&6; }
 if test "${ac_cv_lib_fmio_fm_readheader+set}" = set; then
@@ -3611,7 +3611,7 @@ echo "${ECHO_T}$ac_cv_lib_fmio_fm_readheader" >&6; }
 if test $ac_cv_lib_fmio_fm_readheader = yes; then
 
 cat >>confdefs.h <<_ACEOF
-#define $synopcol_have_feat 1
+#define $fmsnowcover_have_feat 1
 _ACEOF
 
 else

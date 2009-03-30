@@ -1,0 +1,86 @@
+#!/usr/bin/perl -w
+#
+# NAME:
+# process-snow
+#
+# PURPOSE:
+# To process AVHRR imagery for snow contaminated pixels.
+#
+# REQUIREMENTS:
+# NA
+#
+# INPUT:
+# NA
+#
+# OUTPUT:
+# NA
+#
+# NOTES:
+# NA
+#
+# BUGS:
+# NA
+#
+# AUTHOR:
+# Øystein Godøy, METNO/FOU, 27.03.2009 
+#
+# MODIFIED:
+# NA
+#
+# CVS_ID:
+# $Id: process-snow,v 1.1 2009-03-30 13:42:53 steingod Exp $
+#
+
+use strict;
+
+my(@tmparr, $item, $prodmtime, $imgmtime, $updated, @f2p);
+
+my $fmsnowcover="$ENV{HOME}/software/fmsnowcover/src/fmsnowcover";
+my $fmsnowcovercfg="$ENV{HOME}/software/fmsnowcover/etc/conf-laika.cfg";
+
+# Read the configuration file
+open FH,"$fmsnowcovercfg" or die "could not open $fmsnowcovercfg";
+my @fc = <FH>;
+close FH;
+@tmparr = grep /^IMGPATH/,@fc;
+my $imgpath = (split / /,$tmparr[0])[1];
+$imgpath =~ s/\n//;
+@tmparr = grep /^PRODUCTPATH/,@fc;
+my $prodpath = (split / /,$tmparr[0])[1];
+$prodpath =~ s/\n//;
+
+# Check when products last were updated
+opendir DH,"$prodpath" || die "PAP: Can't connect to $prodpath\n";
+my @prodfiles = readdir DH;
+closedir DH;
+$updated = 0;
+foreach $item (@prodfiles) {
+    next if ($item =~ /^\./);
+    $prodmtime = (stat("$prodpath/$item"))[9];
+    $updated = $prodmtime if ($prodmtime > $updated); 
+}
+
+# Find available files in the directory examined
+opendir DH,"$imgpath" || die "PAP: Can't connect to $imgpath\n";
+my @imgfiles = readdir(DH);
+closedir DH;
+die "No files found in $imgpath." if ($#imgfiles <= 1);
+print "$updated\n";
+foreach $item (@imgfiles) {
+    next if ($item =~ /^\./);
+    next if ($item =~ /\.txt$/);
+    next if ($item =~ /sf\.aha$/);
+    next if ($item =~ /sv\.aha$/);
+    $imgmtime = (stat("$imgpath/$item"))[9];
+    push @f2p,$item if ($imgmtime > $updated);
+}
+die "No files to process." if ($#f2p <= 1);
+@f2p = sort(@f2p);
+
+# Process files
+foreach $item (@f2p) {
+    warn "Error while processing $item" 
+	if (system("$fmsnowcover -c $fmsnowcovercfg -i $item") != 0);
+}
+
+exit;

@@ -59,7 +59,7 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.4 2009-03-11 16:30:59 steingod Exp $
+ * $Id: pix_proc.c,v 1.5 2009-03-30 13:42:53 steingod Exp $
  */ 
 
 #include <fmsnowcover.h>
@@ -69,7 +69,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
     unsigned char *class, short algo, statcoeffstr cof) {
     
     char *where="process_pixels4ice";
-    char what[OSI_MSGLENGTH];
+    char what[FMSNOWCOVER_MSGLENGTH];
     int i, j, size;
     int xc, yc;
     /* double x; */
@@ -125,7 +125,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 
     doy = fmdayofyear(timeid);
 
-
     /*
      * Start of nested loops that run through alle pixels.
      * TABS are not used in this section as it would complicate
@@ -133,7 +132,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
      */
     for (yc=0; yc < img.ih; yc++) {
 	for (xc=0; xc < img.iw; xc++) {
-
 
 	    /*
 	     * 2D -> 1D indexing...
@@ -144,8 +142,8 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    /*
 	     * Better safe than sorry...
 	     */
-	    for (j=0; j<OSI_OLEVELS; j++) {
-		((float *) probs[j].data)[i] = OSIMISVAL_NOCOV;
+	    for (j=0; j<FMSNOWCOVER_OLEVELS; j++) {
+		((float *) probs[j].data)[i] = FMSNOWCOVERMISVAL_NOCOV;
 	    }
 
 	    /*
@@ -157,14 +155,12 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    geop = fmucs2geo(ucspos,MI);
 	    zsun = fmsolarzenith(timeidsec, geop);
 
-
-
 	    if (zsun < 85.) {
 		cpar.algo = 2;
 	    } else {
 		class[i] = 0;
-		for (j=0; j<OSI_OLEVELS; j++) {
-		    ((float *) probs[j].data)[i] = OSIMISVAL_NIGHT;
+		for (j=0; j<FMSNOWCOVER_OLEVELS; j++) {
+		    ((float *) probs[j].data)[i] = FMSNOWCOVERMISVAL_NIGHT;
 		}
 		continue;
 	    }
@@ -175,8 +171,8 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	     * the satellite has passed. 
 	     */
 	    if ((img.image[3][i] == 0) && (img.image[4][i] == 0)) {
-		for (j=0; j<OSI_OLEVELS; j++) {
-		    ((float *) probs[j].data)[i] = OSIMISVAL_NOCOV;
+		for (j=0; j<FMSNOWCOVER_OLEVELS; j++) {
+		    ((float *) probs[j].data)[i] = FMSNOWCOVERMISVAL_NOCOV;
 		}
 		continue;
 	    }
@@ -210,8 +206,8 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    if (!cpar.daytime3b) {
 		if ((img.image[5][i] == 0) && (img.image[3][i] > 50)) {
 		    class[i] = 0;
-		    for (j=0; j<OSI_OLEVELS; j++) {
-			((float *) probs[j].data)[i] = OSIMISVAL_3A;
+		    for (j=0; j<FMSNOWCOVER_OLEVELS; j++) {
+			((float *) probs[j].data)[i] = FMSNOWCOVERMISVAL_3A;
 		    }
 		    continue;
 		}
@@ -237,18 +233,15 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    cpar.soz = zsun;
 	    cpar.saz = 0.;
 
-	    /* QUICK HACK!!! */
 	    cpar.tdiff = 0.0;	  
-	    #ifdef AVHRRICE_HAVE_NWP
+	    #ifdef FMSNOWCOVER_HAVE_LIBUSENWP
 	    cpar.tdiff = nwp.t0m[i]-cpar.T4;
             #endif
-	    
 
 	    /* Estimate the reflective part of daytime channel 3b */
 	    if (cpar.daytime3b){
 	      cpar.A3b = fm_ch3brefl(cpar.T3,cpar.T4,cpar.soz,img.sa,doy);
 	    }
-
 	    
 	    if (probest(cpar, &p, cof)) {
 		sprintf(what,
@@ -256,24 +249,25 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 		fmerrmsg(where,what);
 	    }
 	    
-	    /*adding this to prevent classification when probabilities
-	      do not sum to 1*/
+	    /*
+	     * Adding this to prevent classification when probabilities do
+	     * not sum to 1.
+	     */
 	    if (p.pice+p.pfree+p.pcloud < 0.95 || p.pice+p.pfree+p.pcloud > 1.05){
-	      continue; /*OSIMISVAL_NOCOV*/
+	      continue; 
 	    }
  
-	    /*Also, if r3b1 is too large the probabilities can end up
-	      as nan (not fixed by statement above). Trying
-	      this:*/
+	    /*
+	     * Also, if r3b1 is too large the probabilities can end up as
+	     * nan (not fixed by statement above). Trying this:
+	     */
 	    if (isnan(p.pice) || isnan(p.pfree) || isnan(p.pcloud)) {
 	      continue;
 	    }
 
-
 	    ((float *) probs[0].data)[i] = p.pice;
 	    ((float *) probs[1].data)[i] = p.pfree;
 	    ((float *) probs[2].data)[i] = p.pcloud;
-
 
 	    /* Do not remove, I would like to test this further later...
 	     * It did not converge at first attempt...
@@ -305,12 +299,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 		+3.649293*(cpar.A2/cpar.A1)
 		-7.423763*(cpar.A3/cpar.A1);
 	    p = exp(x)/(1+exp(x));
-	    */
-
-	    
-	    /*
-	    printf(" %.2f %.2f %.2f -> %.2f\n",
-		    cpar.A2, cpar.A3, cpar.soz, p);
 	    */
 
 	    if (p.pice < 0.0) {
@@ -362,6 +350,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
     }
     fmlogmsg(where,"Now returning to main...");
    
-    return(0);
+    return(FM_OK);
 }
 

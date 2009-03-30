@@ -43,7 +43,7 @@
  * renaming existing r31 to r3a1)
  *
  * CVS_ID:
- * $Id: probest.c,v 1.3 2009-03-10 13:30:30 mariak Exp $
+ * $Id: probest.c,v 1.4 2009-03-30 13:42:53 steingod Exp $
  */
 
 #include <stdio.h>
@@ -65,7 +65,6 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     double pice=0.5, pfree=0.5, pcloud=0.5;
     /*double picegobs;*/
     
- 
     /*
      * Specify conditional probabilities according to statistical results.
      */
@@ -76,7 +75,6 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     } else {
       r3a1 = cpa.A3/cpa.A1; 
     }
-
    
     pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
    
@@ -89,10 +87,8 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     } else {
    	pr3a1gi = findprob( cof.ice.r3a1, r3a1, "ice r3a1" );
     }
-
     
     pdtgi = findprob( cof.ice.dt, cpa.tdiff,"ice dt" );
-
 
     pa1gc = findprob( cof.cloud.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"cloud a1");
 
@@ -107,7 +103,6 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     }
 
     pdtgc = findprob( cof.cloud.dt, cpa.tdiff,"cloud dt");
-
 
     if (cpa.lmask > 1) { /*Landmask recognized land*/
       pa1gf = findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
@@ -141,7 +136,6 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
       pdtgf = findprob( cof.water.dt, cpa.tdiff,"water dt" );
     }
 
-
     /*
      * Use Bayes theorem and estimate probability for ice.
      */
@@ -152,8 +146,7 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	 +(pr21gc*pr31gc*pa1gc*pdtgc*pcloud));
     */
 
-
-    #ifndef AVHRRICE_HAVE_NWP
+    #ifndef FMSNOWCOVER_HAVE_LIBUSENWP
     pdtgi = pdtgc = pdtgf = 1.;
     #endif
 
@@ -165,7 +158,6 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
     /*This one is to be properly removed when finished testing*/
     pd34gi= pd34gc= pd34gf= 1.;
-
 
     if (cpa.daytime3b) {
 	denomsum = (pr21gi*pd34gi*pr3b1gi*pa1gi*pdtgi*pice)
@@ -212,120 +204,8 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     picegobs = pigr31;
     */
 	
-    return(0);
+    return(FM_OK);
 }
-
-
-
-int probest_hanneh(pinpstr cpa, probstr *p) {
-
-    /*char *where="probest_hanneh";*/
-    double a21,a31;
-    double pa21gi, pa21gw, pa21gc, pa31gi, pa31gw, pa31gc;
-    /* if pice = pwater = pcloud, these factors cancel in Bayes  */
-    /* formula and are not needed: */
-    /* double pice=1.0/3.0, pwater=1.0/3.0, pcloud=1.0/3.0; */
-    double denomsum;
-    int debug=0 /* 0 = false */;
-    
-    /*
-     * Estimate A3a/A1 and A2/A1 for use as input to PDF functions.
-     */
-    if (cpa.A3 < 0.0 || cpa.A2 < 0.0 || cpa.A1 < 0.0){
-      if (debug) {
-	printf("%s %7.3f %7.3f %7.3f", "A1 A2 A3 ", cpa.A1,cpa.A2,cpa.A3);
-      }
-      return(1);
-    }
-    a21 = (double) (cpa.A2 / cpa.A1);
-    a31 = (double) (cpa.A3 / cpa.A1);
-
-    /*
-     * Estimate the probability of getting A2/A3 and A3/A1 given ice, cloud or water
-     */
-
-    pa21gi = normalpdf(0.747654, 0.0616349,a21);
-    /*    pa21gi = gammapdf3(16.38219,0.03767022,.1,a21); */
-    /*    printf(" %s%f\n"," pa21gi =",pa21gi); */
-    /*     if (pa21gi < 0) { */
-    /* 	fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a21i."); */
-    /* 	return(1); */
-    /*     } */
-
-    pa21gw = normalpdf(0.404327,0.0572932,a21);
-    /*     pa21gw = gammapdf3(13.77803,0.01353032,0.25,a21); */
-    /*     printf(" %s%f\n"," pa21gw =",pa21gw); */
-    /*     if (pa21gw < 0) { */
-    /* 	fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a21w."); */
-    /* 	return(1); */
-    /*     } */
-   
-    pa21gc = normalpdf(0.813544, 0.064344, a21);
-    /*     pa21gc = gammapdf3(8.400453,0.01743947,0.4,a21);*/
-    /*     printf(" %s%f\n"," pa21gc =",pa21gc); */
-    /*     if (pa21gc < 0) { */
-    /* 	fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a21c."); */
-    /* 	return(1); */
-    /*     }  */
-
-    pa31gi = normalpdf(0.095215, 0.03729273, a31);
-    /*    pa31gi = gammapdf3(2.0891368,0.03008235, 0.0 ,a31);*/
-    /*     printf(" %s%f\n"," pa31gi =",pa31gi);   */
-    /*     if (pa31gi < 0) { */
-    /* 	fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a31i."); */
-    /* 	return(1); */
-    /*     } */
- 
-    pa31gw = normalpdf(0.07901805, 0.06690694, a31);
-    /*    pa31gw = gammapdf3(3.56321, 0.03292881, -0.01,a31); */
-    /*     printf(" %s%f\n"," pa31gw =",pa31gw);  */
-    /*     if (pa31gw < 0) { */
-    /*       fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a31w."); */
-    /*       return(1); */
-    /*     } */
-    
-    pa31gc = normalpdf(0.6288227, 0.2006739, a31);
-    /*    pa31gc = gammapdf3(44.04446,0.02609957,-0.5,a31);*/
-    /*     printf(" %s%f\n"," pa31gc =",pa31gc);  */
-    /*     if (pa31gc < 0) { */
-    /*       fprintf(stderr,"%s%s\n",progerr,"Error in distribution function a31c."); */
-    /*       return(1); */
-    /*     } */
-
-    /*
-     * Use Bayes theorem and estimate probability for ice, water and cloud.
-     */
-
-    /* 
-     * Use this formula if EQUAL pice, pwater and pcloud,
-     * i.e. assume equal chance of ice, water, and cloud 
-     */
-    denomsum = (pa21gi*pa31gi)+(pa21gw*pa31gw)+(pa21gc*pa31gc);
-    /*
-    *picegobs = (float)((pa21gi*pa31gi) / denomsum);
-    *pwgobs =   (float)((pa21gw*pa31gw) / denomsum);
-    *pcgobs =   (float)((pa21gc*pa31gc) / denomsum);
-    */
-    p->pice = (float)((pa21gi*pa31gi) / denomsum);
-    p->pfree =   (float)((pa21gw*pa31gw) / denomsum);
-    p->pcloud =   (float)((pa21gc*pa31gc) / denomsum);
-
-    /* 
-     *  Use this formula if pice, pwater and pcloud ARE NOT EQUAL
-     */
-    /*     denomsum = (pa21gi*pa31gi*pice)+(pa21gw*pa31gw*pwater)+(pa21gc*pa31gc*pcloud); */
-    /*     picegobs = (pa21gi*pa31gi*pice)  / denomsum; */
-    /*     pwgobs =   (pa21gw*pa31gw*pwater)/ denomsum; */
-    /*     pcgobs =   (pa21gc*pa31gc*pcloud)/ denomsum; */
-
-/*     printf(" %s %6.3f %6.3f %6.3f %6.3f %s %6.3f %6.3f %6.3f %6.3f %s %6.3f %6.3f %6.3f\n",  */
-/* 	   "a21 pgiwc ",  a21, pa21gi, pa21gw, pa21gc,  */
-/* 	   " a31 pgiwc ", a31, pa31gi, pa31gw, pa31gc, */
-/* 	   " piwc ",picegobs, pwgobs, pcgobs); */
-
-    return(0);
-}
-
 
 /*
  * NAME:
@@ -348,7 +228,7 @@ int probest_hanneh(pinpstr cpa, probstr *p) {
 double findprob(featstr feat, double x, char *whereami) {
   double pdf;
   char *where="findpdf";
-  char what[OSI_MSGLENGTH];
+  char what[FMSNOWCOVER_MSGLENGTH];
   int errflg;
   errflg = 0;
   
@@ -375,7 +255,7 @@ double findprob(featstr feat, double x, char *whereami) {
 
   if (errflg) {
     fmerrmsg(where,what);
-    exit(0);
+    exit(FM_IO_ERR);
   }
   
   return(pdf);

@@ -22,7 +22,7 @@
  * NA
  *
  * CVS_ID:
- * $Id: getnwp.h,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: getnwp.h,v 1.3 2009-03-30 13:42:53 steingod Exp $
  */
 #ifndef NWPICE_READ
 #define NWPICE_READ
@@ -57,8 +57,8 @@ typedef struct {
 } nwpice;
 
 int nwpice_init(nwpice *nwp); 
-int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs, 
-	nwpice *nwp);
+int nwpice_read(char *fpath, char **filenames, int nrf, int nruns,
+	fmtime reqtime, fmucsref refucs, nwpice *nwp);
 int nwpice_free(nwpice *nwp);
 
 #endif /* NWP_READ */

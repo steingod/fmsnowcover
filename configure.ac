@@ -27,7 +27,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: configure.ac,v 1.4 2009-03-11 17:18:11 steingod Exp $
+# $Id: configure.ac,v 1.5 2009-03-30 13:42:52 steingod Exp $
 #
 
 AC_PREREQ(2.59)
@@ -90,9 +90,9 @@ case $with_$1 in
       ;;
 esac
 if test [ $with_$1 != no]; then
-    synopcol_have_feat=m4_toupper(SYNOPCOL_HAVE_LIB$1)
+    fmsnowcover_have_feat=m4_toupper(FMSNOWCOVER_HAVE_LIB$1)
     AC_CHECK_LIB([$1],[$2],
-        AC_DEFINE_UNQUOTED([$synopcol_have_feat],[1],[Define if $1 is available]),
+        AC_DEFINE_UNQUOTED([$fmsnowcover_have_feat],[1],[Define if $1 is available]),
     	[CPPFLAGS="$saved_CPPFLAGS";LDFLAGS="$saved_LDFLAGS";
 	LIBS="$saved_LIBS";
 	AC_MSG_ERROR([Did not find lib$1, this is required to continue])])
@@ -144,10 +144,10 @@ case $with_$1 in
       ;;
 esac
 if test [ $with_$1 != no]; then
-    synopcol_have_feat=m4_toupper(SYNOPCOL_HAVE_LIB$1)
+    fmsnowcover_have_feat=m4_toupper(FMSNOWCOVER_HAVE_LIB$1)
     AC_CHECK_LIB([$1],[$2],
         fm_have_lib$1="yes";
-	AC_DEFINE_UNQUOTED([$synopcol_have_feat],[1],[Define if $1 is available]),
+	AC_DEFINE_UNQUOTED([$fmsnowcover_have_feat],[1],[Define if $1 is available]),
     	[CPPFLAGS="$saved_CPPFLAGS";LDFLAGS="$saved_LDFLAGS";
 	LIBS="$saved_LIBS";
 	AC_MSG_WARN([=======================================]);

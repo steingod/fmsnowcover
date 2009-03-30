@@ -38,16 +38,17 @@
  * Øystein Godøy, met.no/FOU, 18.10.2004 
  *
  * MODIFIED:
- * NA
+ * Øystein Godøy, METNO/FOU, 27.03.2009: Take input path, filename
+ * wildcards and number of wildcards to use in addition to the usual...
  *
  * CVS_ID:
- * $Id: getnwp.c,v 1.2 2009-03-01 21:24:15 steingod Exp $
+ * $Id: getnwp.c,v 1.3 2009-03-30 13:42:53 steingod Exp $
  */
 
 #include <getnwp.h>
 
-int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs, 
-	nwpice *nwp) {
+int nwpice_read(char *fpath, char **filenames, int nrf, int nruns, fmtime
+	reqtime, fmucsref refucs, nwpice *nwp) {
 
     char *where="nwpice_read";
     int i, imgsize;
@@ -56,23 +57,7 @@ int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs,
     int nparam1=NOFIELDS1, nparam2=NOFIELDS2;
     int ierror, iundef, len1, len2;
     float satgrid[10], *nwpfield1, *nwpfield2;
-    /*
-    char nwpfiles[FFNS][28];
-    */
-    /* Files to access NWP data at surface lev */
-    static char feltfilepresl[FFNS][30] = { 
-	    "/opdata/hirlam20/grdn00.dat", 
-	    "/opdata/hirlam20/grdn06.dat", 
-	    "/opdata/hirlam20/grdn12.dat", 
-	    "/opdata/hirlam20/grdn18.dat" 
-    };
-    /* Files to access NWP data at model lev*/
-    static char feltfilemodl[FFNS][31] = { 
-	    "/opdata/hirlam20/grdnm00.dat", 
-	    "/opdata/hirlam20/grdnm06.dat", 
-	    "/opdata/hirlam20/grdnm12.dat", 
-	    "/opdata/hirlam20/grdnm18.dat" 
-    };
+    char **fnpl, **fnml, **fnsf;
     /*
     enum nwp_par {T0M,T2M,T950,T800,T750,T500,MSLP,PW,TOPO};
     */
@@ -94,7 +79,10 @@ int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs,
     };
     fmtime nwptime;
 
-    /* Requested grid description, only one supported yet */
+    /* 
+     * Create the grid specification used by feltfiles and libmi. 
+     * Requested grid description, only one supported yet.
+     */
     satgrid[0] = 60.;
     satgrid[1] = 0.;
     satgrid[2] = 1000.;
@@ -113,65 +101,68 @@ int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs,
     itime[4] = reqtime.fm_min;
 
     /*
+     * Create the filenames to use. Currently only one level is required
+     * for this software, implying that only one set of files containing
+     * the surface parameters need to be read by this software. Memory
+     * must be allocated contigous.
+     */
+    if (strstr(fpath,"/opdata")) {
+	len1 =  strlen(fpath)+1+strlen(filenames[0])+6+1;
+    } else if (strstr(fpath,"/starc")) {
+	len1 =  strlen(fpath)+1+11+strlen(filenames[0])+6+1+9;
+    } else {
+	fmerrmsg(where,"Could determine source for NWP data.");
+	return(FM_IO_ERR);
+    }
+    if (fmalloc_byte_2d_contiguous(&fnsf,nruns,len1)){
+	fmerrmsg(where,"Could not allocate fnsf");
+	exit(FM_MEMALL_ERR);
+    }
+    for (i=0;i<nruns;i++) {
+	if (strstr(fpath,"/opdata")) {
+	    sprintf(fnsf[i],"%s/%s%02d.dat",fpath,filenames[0],(i*6));
+	} else if (strstr(fpath,"/starc")) {
+	    sprintf(fnsf[i],"%s/%4d/%02d/%02d/%s%02d.dat_%4d%02d%02d",
+		    fpath,
+		    reqtime.fm_year, reqtime.fm_mon,reqtime.fm_mday,
+		    filenames[0],(i*6),
+		    reqtime.fm_year, reqtime.fm_mon,reqtime.fm_mday);
+	}
+    }
+    fmlogmsg(where,"Collecting HIRLAM data from %s",fpath);
+
+    /*
      * The fields are returned in the vector "field[MAXIMGSIZE]" which is
      * organized like this: "field[nx*ny*nparam]", where nx and ny are
      * the numbers of gridpoints in x and y direction and nparam is the
      * number of fields/parameters collected. 
      */
-    printf(" Collecting HIRLAM data ");
-    printf("and interpolating to satellite grid...\n"); 
-    len1 =  strlen(feltfilepresl[0])+1;
-    len2 =  strlen(feltfilemodl[0])+1;
-    printf(" len1: %d len2: %d\n", len1, len2);
-    /*
-    len1 =  strlen(nwpfiles[0])+strlen(cfg.nwp_p)+2;
-    for (j=0; j<FFNS;j++) {
-	nwpfiles[j] = (char *) malloc(FILENAMELEN);
-	if (!nwpfiles[j]) {
-	    error(errmsg,"memory allocation feltfile");
-	    return(3);
-	}
-	sprintf(nwpfiles[j],"%s/%s",cfg.nwp_p,feltfile[j]);
-	printf(" %s\n", nwpfiles[j]);
-    }
-    */
     imgsize = refucs.iw*refucs.ih;
     if (imgsize > FMIO_MAXIMGSIZE) {
-	fprintf(stderr," ERROR: Not enough space to hold NWP data.\n");
-	fprintf(stderr," Required image size: %d, available size: %d\n", 
-		imgsize, FMIO_MAXIMGSIZE);
-	return(2);
+	fmerrmsg(where,"Data container for NWP is too small, the required size if %d while only %d is available.", imgsize, FMIO_MAXIMGSIZE);
+	return(FM_IO_ERR);
     }
     nwpfield1 = (float *) malloc(NOFIELDS1*imgsize*sizeof(float));
     if (!nwpfield1) {
-	printf(" Could not allocate nwpfield1..\n");
-	return(3);
+	fmerrmsg(where,"Could not allocate nwpfield1.");
+	return(FM_MEMALL_ERR);
     }
-    /*
-    nwpfield2 = (float *) malloc(NOFIELDS2*imgsize*sizeof(float));
-    if (!nwpfield2) {
-	printf(" Could not allocate nwpfield2..\n");
-	return(3);
-    }
-    */
 
     /*
-     * Collect data from the files containing surface, pressure and
-     * parameter fields
+     * Collect data from the files containing surface data.
      */
     /*
-    for (i=0;i<FFNS;i++) {
-	printf(" feltfilepresl %s\n",feltfilepresl[i]);
-    }
-    */
-    printf(" First parameter, surface and pressure fields are searched...\n");
     getfield_(&nfiles, feltfilepresl[0], &iunit, &interp, 
+	    satgrid, &refucs.iw, &refucs.ih, itime, 
+	    &nparam1, iparam1, icontrol, nwpfield1, &iundef, &ierror, len1);
+    */
+    getfield_(&nfiles, fnsf[0], &iunit, &interp, 
 	    satgrid, &refucs.iw, &refucs.ih, itime, 
 	    &nparam1, iparam1, icontrol, nwpfield1, &iundef, &ierror, len1);
 
     if (ierror) {
 	fmerrmsg(where,"error reading surface and parameter fields");
-	return(2);
+	return(FM_IO_ERR);
     }
 
     /*
@@ -229,45 +220,45 @@ int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs,
     /*
     if (!nwp->t950hpa) {
 	nwp->t950hpa = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t950hpa) return(3);
+	if (!nwp->t950hpa) return(FM_MEMALL_ERR);
     }
     if (!nwp->t800hpa) {
 	nwp->t800hpa = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t800hpa) return(3);
+	if (!nwp->t800hpa) return(FM_MEMALL_ERR);
     }
     if (!nwp->t700hpa) {
 	nwp->t700hpa = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t700hpa) return(3);
+	if (!nwp->t700hpa) return(FM_MEMALL_ERR);
     }
     if (!nwp->t500hpa) {
 	nwp->t500hpa = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t500hpa) return(3);
+	if (!nwp->t500hpa) return(FM_MEMALL_ERR);
     }
     if (!nwp->t2m) {
 	nwp->t2m = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t2m) return(3);
+	if (!nwp->t2m) return(FM_MEMALL_ERR);
     }
     */
     if (!nwp->t0m) {
 	nwp->t0m = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->t0m) return(3);
+	if (!nwp->t0m) return(FM_MEMALL_ERR);
     }
     /*
     if (!nwp->ps) {
 	nwp->ps = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->ps) return(3);
+	if (!nwp->ps) return(FM_MEMALL_ERR);
     }
     if (!nwp->pw) {
 	nwp->pw = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->pw) return(3);
+	if (!nwp->pw) return(FM_MEMALL_ERR);
     }
     if (!nwp->rh) {
 	nwp->rh = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->rh) return(3);
+	if (!nwp->rh) return(FM_MEMALL_ERR);
     }
     if (!nwp->topo) {
 	nwp->topo = (float *) malloc(imgsize*sizeof(float));
-	if (!nwp->topo) return(3);
+	if (!nwp->topo) return(FM_MEMALL_ERR);
     }
     */
 
@@ -307,7 +298,7 @@ int nwpice_read(char *filenames, fmtime reqtime, fmucsref refucs,
     free(nwpfield2);
     */
 
-    return(0);
+    return(FM_OK);
 }
 
 /*
@@ -350,7 +341,7 @@ int nwpice_init(nwpice *nwp) {
 
     nwp->topo = NULL;
 
-    return(0);
+    return(FM_OK);
 }
 
 /*
@@ -393,5 +384,5 @@ int nwpice_free(nwpice *nwp) {
 
     if (nwp->topo) free(nwp->topo);
 
-    return(0);
+    return(FM_OK);
 }

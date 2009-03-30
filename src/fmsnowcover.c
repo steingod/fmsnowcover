@@ -46,7 +46,7 @@
  * AVHRRICE_HAVE_NWP as quick way to comment out nwp.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.4 2009-03-11 17:18:11 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.5 2009-03-30 13:42:53 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -55,7 +55,7 @@
 int main(int argc, char *argv[]) {
 
     char *where="fmsnowcover";
-    char what[OSI_MSGLENGTH];
+    char what[FMSNOWCOVER_MSGLENGTH];
     extern char *optarg;
     int ret;
     short errflg = 0, iflg = 0, cflg = 0;
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
     char pname[4];
     char *lmaskf, *opfn;
     char *infile, *cfgfile, *coffile;
+    char *fnwc[3]={"h12sf","h12pl","h12ml"};
     unsigned char *classed;
     cfgstruct cfg;
     FILE *lmask_located; /*Can be removed later*/
@@ -86,8 +87,8 @@ int main(int argc, char *argv[]) {
     nwpice nwp;
     osihdf lm;
     osihdf ice;
-    osi_dtype ice_ft[OSI_OLEVELS]={OSI_FLOAT,OSI_FLOAT,OSI_FLOAT};
-    char *ice_desc[OSI_OLEVELS]={"P(ice)","P(water)","P(cloud)"};
+    osi_dtype ice_ft[FMSNOWCOVER_OLEVELS]={OSI_FLOAT,OSI_FLOAT,OSI_FLOAT};
+    char *ice_desc[FMSNOWCOVER_OLEVELS]={"P(ice)","P(water)","P(cloud)"};
 
     statcoeffstr coeffs = {{{0}}};
     
@@ -188,12 +189,15 @@ int main(int argc, char *argv[]) {
 	exit(FM_IO_ERR);
     }
 
+    /*
     if (strstr(img.sa,"NOAA-15") ||  strstr(img.sa,"NOAA-16")) {
 	printf(" File discarded due to operational constraints on channel 3A\n");
 	fm_clear_fmio_img(&img);
 	exit(FM_VAROUTOFSCOPE_ERR);
 	
     }
+    */
+
     printf(" Satellite: %s\n", img.sa);
     printf(" Time: %02d/%02d/%4d %02d:%02d\n", img.dd, img.mm, img.yy,
     img.ho, img.mi);
@@ -215,7 +219,6 @@ int main(int argc, char *argv[]) {
     fm_img2fmtime(img,&reftime);
     fm_img2fmucsref(img,&refucs);
 
-
     /*
      * Get NWP data...
      * This is probably not necessary in the future, but is kept until it
@@ -224,8 +227,8 @@ int main(int argc, char *argv[]) {
 
     nwpice_init(&nwp);
 
-    #ifdef AVHRRICE_HAVE_NWP
-    if (nwpice_read("xxx",reftime,refucs,&nwp)) {
+    #ifdef FMSNOWCOVER_HAVE_LIBUSENWP
+    if (nwpice_read(cfg.nwppath,fnwc,3,4,reftime,refucs,&nwp)) {
     	fmerrmsg(where,"No NWP data available.");
     	fm_clear_fmio_img(&img);
     	nwpice_free(&nwp);
@@ -247,7 +250,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
 	fprintf(stderr,"%s%s\n", fmerrmsg,"Could not read land/sea mask");
-	return(1);
+	return(FM_IO_ERR);
       }
       fprintf(stdout," Checking for area consistency with land/sea mask...\n");
       if (((int) floorf(lm.h.Bx*10.)) != ((int) floorf(img.Bx*10.)) || 
@@ -265,29 +268,21 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr," By: %f %f\n", lm.h.By, img.By);
 	fprintf(stderr," iw: %d %d\n", lm.h.iw, img.iw);
 	fprintf(stderr," ih: %d %d\n", lm.h.ih, img.ih);
-	return(1);
+	return(FM_IO_ERR);
       }
     }
     else {
-      fprintf(stdout," Landmask unavailable, coefficients for ");
-      fprintf(stdout,"sea/ice/cloud will be used throughout\n");
+	fmlogmsg(where,"No landmask is available, continuing without.");
     }
-    
-    
- 
 
     /*
      * Loading the statistical coeffs into statcoeffs struct           
      */
-    fprintf(stdout," Reading file containing statistical coefficients:\n %s\n",
-	    coffile);
-      
+    fmlogmsg(where,"Loading statistical coefficients from \n\t%s", coffile);
     if (rdstatcoeffs(coffile,&coeffs) != 0) {
-      sprintf(what," Trouble when reading coefficients, exiting");
-      fmerrmsg(where,what);
+      fmerrmsg(where," Trouble reading statistical coefficients, exiting...");
       exit(FM_IO_ERR);
     }
-
 
     /*
      * Function "process_pixels4ice" is called to perform the objective
@@ -299,7 +294,7 @@ int main(int argc, char *argv[]) {
     sprintf(ice.h.product, "%s", where);
     ice.h.iw = img.iw;
     ice.h.ih = img.ih;
-    ice.h.z = OSI_OLEVELS;
+    ice.h.z = FMSNOWCOVER_OLEVELS;
     ice.h.Ax = img.Ax;
     ice.h.Ay = img.Ay;
     ice.h.Bx = img.Bx;
@@ -367,7 +362,7 @@ int main(int argc, char *argv[]) {
 
     opfn = (char *) malloc(FILELEN+5);
     if (!opfn) exit(FM_IO_ERR);
-    sprintf(opfn,"%s/ice_%s_%4d%02d%02d%02d%02d.hdf5", 
+    sprintf(opfn,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.hdf5", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
     sprintf(what,"Creating output file: %s", opfn);
@@ -380,7 +375,7 @@ int main(int argc, char *argv[]) {
     }
     opfn = (char *) malloc(FILELEN+5);
     if (!opfn) exit(FM_IO_ERR);
-    sprintf(opfn,"%s/ice_%s_%4d%02d%02d%02d%02d.mitiff", 
+    sprintf(opfn,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.mitiff", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
     sprintf(what,"Creating output file: %s", opfn);
@@ -423,9 +418,6 @@ void usage() {
  *
  * PURPOSE:
  * To decode configuration file.
- *
- * NOTES:
- * Standard return values 0, 2 and 3, OK, I/O and Memory trouble.
  */
 
 int decode_cfg(char cfgfile[],cfgstruct *cfg) {
@@ -471,6 +463,15 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->imgpath,"%s",pt);
+	} else if (strncmp(pt,"NWPPATH",7) == 0) {
+	    pt = strtok(NULL,token);
+	    if (!pt) {
+		fmerrmsg(where,"%s","strtok trouble.");
+		free(dummy);
+		return(FM_IO_ERR);
+	    }
+	    fmremovenewline(pt);
+	    sprintf(cfg->nwppath,"%s",pt);
 	} else if (strncmp(pt,"CMPATH",6) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
@@ -530,7 +531,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 
 int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   char *where="rdstatcoeffs";
-  char what[OSI_MSGLENGTH];
+  char what[FMSNOWCOVER_MSGLENGTH];
   FILE *fpi;
   char *line = NULL;
   ssize_t read;
@@ -547,8 +548,8 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
 
   while ( (read = getline(&line,&len,fpi)) != -1 ) {
     j = 0;
-    while ((line[j] == ' ') && j < OSI_MSGLENGTH) j++;
-    if (j >= OSI_MSGLENGTH) {
+    while ((line[j] == ' ') && j < FMSNOWCOVER_MSGLENGTH) j++;
+    if (j >= FMSNOWCOVER_MSGLENGTH) {
       sprintf(what,"Line length exceeds maximum length");
       fmerrmsg(where,what);
       return(FM_IO_ERR);
@@ -576,11 +577,10 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   return(FM_OK);
 }
 
-
 /*search through statcoeffstr to find right location for parameters*/
 int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
   char *where="locstatcoeffs";
-  char what[OSI_MSGLENGTH];
+  char what[FMSNOWCOVER_MSGLENGTH];
   int featflg,surfflg;
 
   featflg = surfflg = 0;

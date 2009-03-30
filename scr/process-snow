@@ -28,7 +28,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.1 2009-03-30 13:42:53 steingod Exp $
+# $Id: process-snow,v 1.2 2009-03-30 19:58:02 steingod Exp $
 #
 
 use strict;
@@ -50,7 +50,7 @@ my $prodpath = (split / /,$tmparr[0])[1];
 $prodpath =~ s/\n//;
 
 # Check when products last were updated
-opendir DH,"$prodpath" || die "PAP: Can't connect to $prodpath\n";
+opendir DH,"$prodpath" || die "Can't connect to $prodpath\n";
 my @prodfiles = readdir DH;
 closedir DH;
 $updated = 0;
@@ -61,16 +61,17 @@ foreach $item (@prodfiles) {
 }
 
 # Find available files in the directory examined
-opendir DH,"$imgpath" || die "PAP: Can't connect to $imgpath\n";
+opendir DH,"$imgpath" || die "Can't connect to $imgpath\n";
 my @imgfiles = readdir(DH);
 closedir DH;
 die "No files found in $imgpath." if ($#imgfiles <= 1);
-print "$updated\n";
 foreach $item (@imgfiles) {
     next if ($item =~ /^\./);
     next if ($item =~ /\.txt$/);
     next if ($item =~ /sf\.aha$/);
     next if ($item =~ /sv\.aha$/);
+    next if ($item =~ /gr\.aha$/);
+    next if ($item =~ /at\.aha$/);
     $imgmtime = (stat("$imgpath/$item"))[9];
     push @f2p,$item if ($imgmtime > $updated);
 }

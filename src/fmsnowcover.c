@@ -44,9 +44,12 @@
  * be read from text file rather than being hardcoded in probest.c.
  * Mari Anne Killie, METNO/FOU, 13.10.2008: introduced #ifdef
  * AVHRRICE_HAVE_NWP as quick way to comment out nwp.
+ * Øystein Godøy, METNO/FOU, 07.04.2009: The statement above has been
+ * changed to FMSNOWCOVER_HAVE_LIBUSENWP for compliance with the Autoconf
+ * setup.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.5 2009-03-30 13:42:53 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.6 2009-04-08 11:47:48 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -189,15 +192,6 @@ int main(int argc, char *argv[]) {
 	exit(FM_IO_ERR);
     }
 
-    /*
-    if (strstr(img.sa,"NOAA-15") ||  strstr(img.sa,"NOAA-16")) {
-	printf(" File discarded due to operational constraints on channel 3A\n");
-	fm_clear_fmio_img(&img);
-	exit(FM_VAROUTOFSCOPE_ERR);
-	
-    }
-    */
-
     printf(" Satellite: %s\n", img.sa);
     printf(" Time: %02d/%02d/%4d %02d:%02d\n", img.dd, img.mm, img.yy,
     img.ho, img.mi);
@@ -215,6 +209,11 @@ int main(int argc, char *argv[]) {
     iinfo.Bx = img.Bx;
     iinfo.By = img.By;
     size = img.iw*img.ih;
+    if (img.cover < 40.) {
+	fmlogmsg(where,
+	"The percentage coverage (%d%) of this scene is too small for further processing.",img.cover);
+	exit(FM_OK);
+    }
 
     fm_img2fmtime(img,&reftime);
     fm_img2fmucsref(img,&refucs);

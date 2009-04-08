@@ -59,7 +59,7 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.5 2009-03-30 13:42:53 steingod Exp $
+ * $Id: pix_proc.c,v 1.6 2009-04-08 11:47:48 steingod Exp $
  */ 
 
 #include <fmsnowcover.h>
@@ -127,8 +127,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 
     /*
      * Start of nested loops that run through alle pixels.
-     * TABS are not used in this section as it would complicate
-     * the page layout.
      */
     for (yc=0; yc < img.ih; yc++) {
 	for (xc=0; xc < img.iw; xc++) {
@@ -155,7 +153,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    geop = fmucs2geo(ucspos,MI);
 	    zsun = fmsolarzenith(timeidsec, geop);
 
-	    if (zsun < 85.) {
+	    if (zsun < FMSNOWSUNZEN) {
 		cpar.algo = 2;
 	    } else {
 		class[i] = 0;
@@ -254,7 +252,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	     * not sum to 1.
 	     */
 	    if (p.pice+p.pfree+p.pcloud < 0.95 || p.pice+p.pfree+p.pcloud > 1.05){
-	      continue; 
+		continue; 
 	    }
  
 	    /*
@@ -262,7 +260,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	     * nan (not fixed by statement above). Trying this:
 	     */
 	    if (isnan(p.pice) || isnan(p.pfree) || isnan(p.pcloud)) {
-	      continue;
+		continue;
 	    }
 
 	    ((float *) probs[0].data)[i] = p.pice;

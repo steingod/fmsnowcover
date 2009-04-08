@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.6 2009-03-30 13:42:53 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.7 2009-04-08 11:47:48 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -65,6 +65,7 @@
 #define FMSNOWCOVERMISVAL_NIGHT -990 
 #define FMSNOWCOVERMISVAL_LAND -992
 #define FMSNOWCOVERMISVAL_3A -993
+#define FMSNOWSUNZEN 85.
 
 /*
  * Some useful data constants to use in the software.

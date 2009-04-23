@@ -28,14 +28,14 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.4 2009-04-23 10:43:42 steingod Exp $
+# $Id: process-snow,v 1.5 2009-04-23 20:31:09 steingod Exp $
 #
 
 use strict;
 
 my(@tmparr, $item, $prodmtime, $imgmtime, $updated, @f2p);
 my($mycommand,$myperiod,$cryostime,$cryosdate,@mytimearr);
-my $storagetime = 3*24*3600;
+my $storagetime = 14*24*3600;
 my $accutime = 7*24*3600;
 
 my $fmsnowcover="$ENV{HOME}/software/fmsnowcover/src/fmsnowcover";
@@ -103,7 +103,6 @@ if (system($mycommand)) {
 opendir DH,"$prodpath" || die "Can't connect to $prodpath\n";
 @prodfiles = readdir DH;
 closedir DH;
-$updated = 0;
 foreach $item (@prodfiles) {
     next if ($item =~ /^\./);
     $prodmtime = (stat("$prodpath/$item"))[9];

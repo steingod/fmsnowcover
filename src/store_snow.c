@@ -1,4 +1,7 @@
 /*
+ * NAME:
+ * store_snow
+ *
  * PURPOSE:
  * Writes image data on TIFF formatted file, ready for visualization
  * on any standard image viewer. TIFF tag number 262 is photometric
@@ -17,11 +20,12 @@
  * Mari Anne Killie, DNMI/FOU, 03/04/2009
  *
  * CVS_ID:
+ * $Id: store_snow.c,v 1.2 2009-04-23 10:43:43 steingod Exp $
  */
 
 #include <fmio.h>
 #include <tiffio.h>
-#include <accusnow.h>
+#include <fmaccusnow.h>
 
 int store_snow(char *filename, PRODhead ph, unsigned char *im, int numcat, char *desc[], char *satstring) {
 

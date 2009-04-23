@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.7 2009-04-08 11:47:48 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.8 2009-04-23 10:43:43 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -185,8 +185,8 @@ void moment(float data[], int n, float *ave, float *adev, float *sdev,
     float *var, float *skew, float *curt);
 
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof);
-int probest_hanneh(pinpstr cpa, probstr *p);
 /*
+int probest_hanneh(pinpstr cpa, probstr *p);
 int probest_hanneh(struct miclpa cpa, float *picegobs, float *pwgobs, 
 	     float *pcgobs);
 */

@@ -1,46 +1,26 @@
-/******************************************************************
- * COPYRIGHT: EUMETSAT
- *
- * PRODUCED BY:
- * Norwegian Meteorological Institute (DNMI)
- * Research and Development Department
- * P.O.BOX 43 - Blindern, N-0313 OSLO, NORWAY
- *       
- * This SW was developed by DNMI and DMI within the context of the
- * Co-operation Agreement for the development of a pilot SAF on
- * Ocean and Sea Ice.
- *****************************************************************/
-
 /*
- * NAME: func_accusnow.c (working name)
+ * NAME: 
+ * fmaccusnowfuncs.c 
  * 
- * PURPOSE: Functions used by accusnow.
- * 
+ * PURPOSE: 
+ * Functions used by accusnow.
  *
- * AUTHOR: Steinar Eastwood, DNMI, 16.11.2000
+ * NOTES:
+ * Needs rewriting to comply with error and return structure of libfmutil.
+ *
+ * AUTHOR: 
+ * Steinar Eastwood, DNMI, 16.11.2000
+ *
  * MODIFIED: 
- * SE, DNMI, 23.01.2001
- * SE, met.no, 10.01.2003  New version of average_merge_filesQF.
- * SE, met.no, 10.01.2003  Error in average_merge_filesQF.
- * SE, met.no, 28.10.2003  Improved error handling when reading ice file.
- * SE, met.no, 28.11.2003  New time functions.
- * SE, met.no, 02.12.2003  Moved time functions to func_time_conv.c.
- * SE, met.no, 09.12.2003  Skipping HDF files if reading fails.
- *                         New merging func -> standard.
- * SE, met.no, 13.01.2004  exit replaced by return.
- * SE, met.no, 10.08.2004  HR SST files now contain SST, QFLG and SZA.
- * SE, met.no, 23.02.2005  Extrapolating to unclassified values in ice field.
- *                         Check for land before ice in average_merge_filesQF.
- * SE, met.no, 20.04.2005  Optional use of satellite senith angle in selecting
- *                         obs for averaging.
- * SE, met.no, 01.11.2006  Use dummy values for quality flags and sat zenith if 
- *                         old hdf format.
+ * Mari Anne Killie, METNO/FOU, 08.01.2009: Original file by Steinar
+ * Eastwood modified for use within the fmsnowcover package.
+ * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
- *MAK, met.no, 08.01.2009 Using func_average_SST.c as starting point
- *for files that will compile a snowmap for the cryorisk project.
+ * CVS_ID:
+ * $Id: fmaccusnowfuncs.c,v 1.1 2009-04-23 10:43:43 steingod Exp $
  */ 
 
-#include <accusnow.h>
+#include <fmaccusnow.h>
 
 
 
@@ -157,7 +137,7 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
       }
 
       /* if NOT prob.value for this pixel: */
-      else if (Pice_val == OSIMISVAL_NOCOV || Pice_val == OSIMISVAL_NIGHT || Pice_val == OSIMISVAL_3A){ /* Undefined*/
+      else if (Pice_val == FMACCUSNOWMISVAL_NOCOV || Pice_val == FMACCUSNOWMISVAL_NIGHT || Pice_val == FMACCUSNOWMISVAL_3A){ /* Undefined*/
 	if (Pcloud_val != Pice_val || Pclear_val != Pice_val) {
 	  /*not supposed to happen, check avhrrice_pap routines!*/
 	  fprintf(stderr,

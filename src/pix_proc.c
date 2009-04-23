@@ -59,7 +59,7 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.6 2009-04-08 11:47:48 steingod Exp $
+ * $Id: pix_proc.c,v 1.7 2009-04-23 10:43:43 steingod Exp $
  */ 
 
 #include <fmsnowcover.h>
@@ -184,18 +184,14 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 		    cpar.daytime3b = 1;
 		}
 	    }
-	    /*
-	    cpar.cmask = (short) cmask[0][i];
-	    cpar.lmask = (short) lmask[i];
-	    */
 	    if (lmask == NULL) {
-	      if (i == 0) {
-		fmlogmsg(where,
-		"Landmask not in use, using coefficients for sea/ice/cloud");
-	      }
+		if (i == 0) {
+		    fmlogmsg(where,
+			"Landmask not in use, using coefficients for sea/ice/cloud");
+		}
 	    }
 	    else {
-	      cpar.lmask = (short) lmask[i];
+		cpar.lmask = (short) lmask[i];
 	    }
 
 	    /*

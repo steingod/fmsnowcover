@@ -1,23 +1,10 @@
-/******************************************************************
- * COPYRIGHT: EUMETSAT
- *
- * PRODUCED BY:
- * Norwegian Meteorological Institute (DNMI)
- * Research and Development Department
- * P.O.BOX 43 - Blindern, N-0313 OSLO, NORWAY
- *       
- * This SW was developed by DNMI and DMI within the context of the
- * Co-operation Agreement for the development of a pilot SAF on
- * Ocean and Sea Ice.
- *****************************************************************/
-
 /*
- * NAME: accusnow (working name)
+ * NAME: 
+ * fmaccusnow
  * 
- * PURPOSE: Average (AVHRR) ice product files to compound a cloudfree
- *          snowmap.
- *          Based on /osisaf/OSI_HL_SST/product/binsrc/average_merge_SST.c
- *          
+ * PURPOSE: 
+ * Average (AVHRR) fmsnowcover product files to compound a cloudfree
+ * snowmap.
  * 
  * SYNTAX: accusnow -s <dir_avhrrice> -d <date_start> 
  *         -p <period> -a <pref_outf> -o <path_outf>
@@ -33,38 +20,20 @@
  *    <arealist>     : File with tile areas to use (optional).
  *    -z             : Use threshold on satellite zenith angle (value from header file).
  * 
+ * AUTHOR: 
+ * Steinar Eastwood, DNMI, 21.08.2000
  *
- * AUTHOR: Steinar Eastwood, DNMI, 21.08.2000
  * MODIFIED: 
- * SE, DNMI, 19.03.2001, 11.06.2001
- * SE, DNMI/FOU, 18.07.2001  Removed DNMI FELT file output.
- * SE, met.no, 26.08.2002  Change input arguments.
- * SE, met.no, 10.01.2003  Change reading of SST/QSST fields and
- *                         function average_merge_filesQF.
- * SE, met.no, 09.07.2003  Time SST to HDF file.
- * SE, met.no, 28.11.2003  New handling of input arguments and reading of
- *                         of input files with dirent.
- * SE, met.no, 09.12.2003  New merging function as standard.
- * SE, met.no, 13.01.2004  Introduced int main.
- * SE, met.no, 13.02.2004  Introduced -t option: to process only one satellite.
- * SE, met.no, 18.02.2004  Changed check on file name length.
- * SE, met.no, 24.02.2004  Bug in product time.
- * SE, met.no, 04.08.2004  No writing of grib files.
- * SE, met.no, 10.08.2004  HR SST files now contain SST, QFLG and SZA.
- * SE, met.no, 04.02.2005  Added use of satlist and arealist.
- * SE, met.no, 20.04.2005  Optional use of satellite senith angle in selecting
- *                         obs for averaging.
- * SE, met.no, 06.06.2005  Including proj string in HDF5 output header.
- * SE, met.no, 08.03.2006  Changed interface to sec1970toDateStr..
- * SE, met.no, 01.11.2006  No longer QSST and TSST HDF output, all fields in on file.
- * SE, met.no, 28.11.2006  Assume no ice if icefile is not provided.
+ * Mari Anne Killie, METNO/FOU, 08.01.2009: Original software created by
+ * Steinar Eastwoord, modified for use within the fmsnowcover package.
+ * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
- * MAK,met.no, 08.01.2009  Using average_merge_SST.c as starting point 
- *                         for averaging files for OSI SAF avhrrice.
+ * CVS_ID:
+ * $Id: fmaccusnow.c,v 1.1 2009-04-23 10:43:43 steingod Exp $
  */ 
 
  
-#include <accusnow.h>
+#include <fmaccusnow.h>
 #include <unistd.h>
 
 #define LISTLEN 100
@@ -102,8 +71,8 @@ int main(int argc, char *argv[])
   char *satstring; /*To be used in output filenames*/
   osihdf snowprod, checkfileheader; /*To be renamed*/
   osihdf *inputhdf;
-  char *prod_desc[AVHRRICEPROD_LEVELS] = {"class","P(snow)","P(clear)"};
-  osi_dtype prod_ft[AVHRRICEPROD_LEVELS] = {CLASS_DT,PROB_DT,PROB_DT};
+  char *prod_desc[FMACCUSNOWPROD_LEVELS] = {"class","P(snow)","P(clear)"};
+  osi_dtype prod_ft[FMACCUSNOWPROD_LEVELS] = {CLASS_DT,PROB_DT,PROB_DT};
   unsigned char *class, *snowclass;
   float *probsnow, *probclear;
   int sorted_index, index_offset;
@@ -142,7 +111,7 @@ int main(int argc, char *argv[])
 
   fprintf(stdout,"\n");
   fprintf(stdout,"\t=================================================\n");
-  fprintf(stdout,"\t|                  ACCUSNOW                     |\n");
+  fprintf(stdout,"\t|                  FMACCUSNOW                     |\n");
   fprintf(stdout,"\t=================================================\n");
   fprintf(stdout,"\n");
 
@@ -345,8 +314,8 @@ int main(int argc, char *argv[])
 
   numf = 0;
   while ((dirl_avhrrice = readdir(dirp_avhrrice)) != NULL) {
-    if (strncmp(dirl_avhrrice->d_name,BASENMAVHRRICE,strlen(BASENMAVHRRICE)) == 0 &&
-	strstr(dirl_avhrrice->d_name,".hdf") != NULL && strlen(dirl_avhrrice->d_name) >= MINLENNMAVHRRICE) {
+    if (strncmp(dirl_avhrrice->d_name,BASEFNAME,strlen(BASEFNAME)) == 0 &&
+	strstr(dirl_avhrrice->d_name,".hdf") != NULL && strlen(dirl_avhrrice->d_name) >= MINLENFNAME) {
       sret = strncpy(datestr,&dirl_avhrrice->d_name[10],12);
       datestr[12] = '\0';
       sprintf(datestr_ymdhms,"%s00",datestr);
@@ -366,9 +335,9 @@ int main(int argc, char *argv[])
   while ((dirl_avhrrice = readdir(dirp_avhrrice)) != NULL) {
 
     /*Check input filename*/
-    if (strncmp(dirl_avhrrice->d_name,BASENMAVHRRICE,strlen(BASENMAVHRRICE)) 
+    if (strncmp(dirl_avhrrice->d_name,BASEFNAME,strlen(BASEFNAME)) 
 	== 0 &&	strstr(dirl_avhrrice->d_name,".hdf") != NULL && 
-	strlen(dirl_avhrrice->d_name) >= MINLENNMAVHRRICE) {
+	strlen(dirl_avhrrice->d_name) >= MINLENFNAME) {
 
       /*Check time of file*/
       sret = strncpy(datestr,&dirl_avhrrice->d_name[10],12);

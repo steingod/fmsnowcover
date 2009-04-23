@@ -31,7 +31,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: Makefile.in,v 1.3 2009-03-11 17:18:11 steingod Exp $
+# $Id: Makefile.in,v 1.4 2009-04-23 10:43:43 steingod Exp $
 #
 
 SHELL = /bin/sh
@@ -51,12 +51,10 @@ LDFLAGS = @LDFLAGS@
 
 LIBS = @LIBS@
 
-
-HEADER_FILES = \
+HEADER_FILES1 = \
   fmsnowcover.h \
   getnwp.h
-
-SRC_FILES = \
+SRC_FILES1 = \
   fmsnowcover.c \
   pix_proc.c \
   probest.c \
@@ -65,22 +63,40 @@ SRC_FILES = \
   gammapdf.c \
   store_mitiff_product.c
 
+HEADER_FILES2 = \
+  fmaccusnow.h 
+SRC_FILES2 = \
+  fmaccusnow.c \
+  store_snow.c \
+  fmaccusnowfuncs.c 
+
 AUTOMATED_FILES = \
-   Makefile
+  Makefile
 
 .SUFFIXES:
 .SUFFIXES: .c .o
 
 .PHONY: clean install distclean
 
-BINFILE = fmsnowcover
+BINFILE1 = fmsnowcover
 
-OBJ_FILES := $(SRC_FILES:.c=.o)
+BINFILE2 = fmaccusnow
 
-$(BINFILE): $(OBJ_FILES) 
-	$(CC) $(CFLAGS) -o $(BINFILE) $^ $(LDFLAGS) $(LIBS)
+OBJ_FILES1 := $(SRC_FILES1:.c=.o)
 
-$(OBJ_FILES): $(HEADER_FILES)
+OBJ_FILES2 := $(SRC_FILES2:.c=.o)
+
+all: $(BINFILE1) $(BINFILE2)  
+
+$(BINFILE1): $(OBJ_FILES1) 
+	$(CC) $(CFLAGS) -o $(BINFILE1) $^ $(LDFLAGS) $(LIBS)
+
+$(BINFILE2): $(OBJ_FILES2) 
+	$(CC) $(CFLAGS) -o $(BINFILE2) $^ $(LDFLAGS) $(LIBS)
+
+$(OBJ_FILES1): $(HEADER_FILES1)
+
+$(OBJ_FILES2): $(HEADER_FILES2)
 
 clean:
 	find $(srcdir) -name "*.o" -exec rm -f {} \;
@@ -89,9 +105,10 @@ clean:
 distclean:
 	$(MAKE) clean
 	rm -rf $(AUTOMATED_FILES)
+	rm -rf $(BINFILE1) $(BINFILE2)
 
 install:
 	install -d $(incdir)
-	install --mode=644 $(HEADER_FILES) $(incdir)
+	install --mode=644 $(HEADER_FILES1) $(HEADER_FILES2) $(incdir)
 	install -d $(bindir)
-	install --mode=644 $(BINFILE) $(bindir)
+	install --mode=755 $(BINFILE1) $(BINFILE2) $(bindir)

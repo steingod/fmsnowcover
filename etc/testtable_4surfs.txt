@@ -1,0 +1,77 @@
+########
+# Table contains statistical coefficients needed in probest.c
+########
+# This table contains coefficients for clouds, snow/ice, water and land
+#
+# The coefficients for features a1, r21 and r3b1 are taken from
+# the new NOAA-18 training data (produced summer 2008, based on data from
+# march to may 2007 and february 2008). 
+#
+# Coefficients for the surface 'ice' are based on training data for
+# snow in mountain, forest and grassland, as well as snow on sea
+# ice. (Coefficients based on training data for snow on sea ice alone
+# are included as extra entries that are commented out).
+# Coefficients for the surface 'cloud' are based on training data
+# for cloud over land and cloud over water. For the case of 'water',
+# the coefficients are based on the training data after the removal of
+# data from one particular day causing strange spikes in the
+# statistics.
+#
+# The coefficients for r3a1 and dt are unchanged.
+# NOTE!: for land, coefficients for r3a1 and dt are same as those for water..
+#
+# NOTE#2!: bug in code, hopefully corrected by changing the
+# coefficients for r3b1. Will be checked thouroghly later! The old,
+# possibly wrong, r3b1 coefficients are marked "del"
+########
+#
+# LINE FORMAT: surface (ice/cloud/water/land), 
+# feature (a1,r21,d34,r3a1,r3b1,dt), pdf-code (n/g/t), par1, par2, par3
+# 
+# pdf-code = 'n': normal distribution -> par1 is mean, par2 is standard
+# deviation and par3 is not in use.
+# pdf-code = 'g': gamma distribution -> par1 is alpha, par2 is beta and
+# par3 is not in use.
+# pdf-code = 't': 3-parameter gamma distribution -> par1 is alpha, par2 is beta
+# and par3 is gamma. 
+#
+# Note: all lines not starting with '#' will be read.
+#
+#surf.	feat.	code	par1		par2		par3
+#
+ice	a1	n	50.1362		20.5404		0
+#ice	a1	n	59.78129	10.32645	0
+ice	r21	n	0.8603008	0.1540223	0
+#ice	r21	n	0.7923573	0.08238237	0
+ice	d34	n	2.71931		1.698669	0
+#ice	d34	n	1.909457	1.480430	0
+#ice	d34	g	40.348896	0.56577205	0
+ice	r3a1	n	0.095215	0.03729273 	0
+#del!icer3b1	n	0.02778274	0.02629123	0
+#del!icer3b1	n	0.01500448	0.01743003	0
+ice	r3b1	n	0.06733634	0.07226607	0
+#ice	r3b1	n	0.04956642	0.08434904	0
+ice	dt	n	4.321039	6.261954	0
+cloud	a1	n	58.80773	14.62769	0
+cloud	r21	n	0.8874712	0.07164649	0
+cloud	d34	n	24.38054	10.58315	0
+cloud	r3a1	n	0.6288227	0.2006739	0
+#del!cloudr3b1	n	0.1747043	0.1211695	0
+cloud	r3b1	n	0.4825792	0.4907942	0
+cloud	dt	n	19.56302	15.36650	0
+water	a1	n	6.782623	3.273442	0
+water	r21	n	0.4336718	0.05940579	0
+water	d34	n	0.2013387	0.6547641	0
+#water	d34	g	26.54731407	0.59884065	0	
+water	r3a1	n	0.07901805	0.06690694	0
+#del!waterr3b1	n	0.0736472	0.08318185	0
+water	r3b1	n	0.4435128	0.7633073	0
+water	dt	n	19.56302	15.36650	0
+land	a1	n	7.108342	1.713615	0
+land	r21	n	2.06151		0.3371751	0
+land	d34	n	3.898854	1.601112	0
+#land	d34	g	26.54731407	0.59884065	0	
+land	r3a1	n	0.07901805	0.06690694	0
+#del!landr3b1	n	0.3819999	0.1189107	0
+land	r3b1	n	0.5563238	0.157801	0
+land	dt	n	19.56302	15.36650	0

@@ -28,16 +28,20 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.3 2009-03-30 20:10:49 steingod Exp $
+# $Id: process-snow,v 1.4 2009-04-23 10:43:42 steingod Exp $
 #
 
 use strict;
 
 my(@tmparr, $item, $prodmtime, $imgmtime, $updated, @f2p);
+my($mycommand,$myperiod,$cryostime,$cryosdate,@mytimearr);
 my $storagetime = 3*24*3600;
+my $accutime = 7*24*3600;
 
 my $fmsnowcover="$ENV{HOME}/software/fmsnowcover/src/fmsnowcover";
-my $fmsnowcovercfg="$ENV{HOME}/software/fmsnowcover/etc/conf-laika.cfg";
+my $fmsnowcovercfg="$ENV{HOME}/software/fmsnowcover/etc/conf-local.cfg";
+my $accusnow="$ENV{HOME}/software/fmsnowcover/src/fmaccusnow";
+my $tilefile="$ENV{HOME}/software/fmsnowcover/etc/tilelist_cryorisk";
 
 # Read the configuration file
 open FH,"$fmsnowcovercfg" or die "could not open $fmsnowcovercfg";
@@ -49,6 +53,7 @@ $imgpath =~ s/\n//;
 @tmparr = grep /^PRODUCTPATH/,@fc;
 my $prodpath = (split / /,$tmparr[0])[1];
 $prodpath =~ s/\n//;
+my $logfile = $prodpath."/accusnow_log";
 
 # Check when products last were updated
 opendir DH,"$prodpath" || die "Can't connect to $prodpath\n";
@@ -67,12 +72,7 @@ my @imgfiles = readdir(DH);
 closedir DH;
 die "No files found in $imgpath." if ($#imgfiles <= 1);
 foreach $item (@imgfiles) {
-    next if ($item =~ /^\./);
-    next if ($item =~ /\.txt$/);
-    next if ($item =~ /sf\.aha$/);
-    next if ($item =~ /sv\.aha$/);
-    next if ($item =~ /gr\.aha$/);
-    next if ($item =~ /at\.aha$/);
+    next unless ($item =~ /ns\.aha$|nr\.aha$/);
     $imgmtime = (stat("$imgpath/$item"))[9];
     push @f2p,$item if ($imgmtime > $updated);
 }
@@ -83,6 +83,20 @@ die "No files to process." if ($#f2p <= 1);
 foreach $item (@f2p) {
     warn "Error while processing $item" 
 	if (system("$fmsnowcover -c $fmsnowcovercfg -i $item") != 0);
+}
+
+# Accumulate snow products
+# må lese inn config fil og få kompilert programvaren
+$cryostime = time-$accutime;
+$myperiod = $accutime/3600.;
+#($c_sec,$c_min,$c_hour,$c_mday,$c_mon,$c_year,$c_wday,$c_yday,$c_isdst) 
+@mytimearr=gmtime($cryostime);
+
+$cryosdate = sprintf("%4d%02d%02d00",
+	$mytimearr[5]+1900,$mytimearr[4]+1,$mytimearr[3]);
+$mycommand = "$accusnow -s $prodpath -d $cryosdate -p $myperiod -o $prodpath -m $tilefile -c 0.4 > $logfile";
+if (system($mycommand)) {
+    print "\nRunning $mycommand failed $!\n";
 }
 
 # Remove old files

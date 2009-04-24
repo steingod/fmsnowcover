@@ -8,14 +8,12 @@
  * o Mask file in DNMI TIFF format specified by symbolic link. 
  *
  * OUTPUT:
+ * o OSIHDF5 file containing floating point values for 3 classes.
  * o DNMI TIFF file containing colortable.
  *   Filename has to be specified at commandline. Full path is required.
  * 
  * BUGS:
- * Not thoroughly tested yet...
- *
- * Not all dynamically allocated memory is properly freed yet, code should be
- * checked... Especially code connected with use of strtok...
+ * NA
  *
  * AUTHOR: 
  * Øystein Godøy, DNMI/FOU, 13/12/2000
@@ -49,7 +47,7 @@
  * setup.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.6 2009-04-08 11:47:48 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.7 2009-04-24 12:23:43 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -64,7 +62,7 @@ int main(int argc, char *argv[]) {
     short errflg = 0, iflg = 0, cflg = 0;
     short status;
     unsigned int size;
-    char fname[FILENAME];
+    char fname[FILENAME],datestr[25];
     char pname[4];
     char *lmaskf, *opfn;
     char *infile, *cfgfile, *coffile;
@@ -91,7 +89,8 @@ int main(int argc, char *argv[]) {
     osihdf lm;
     osihdf ice;
     osi_dtype ice_ft[FMSNOWCOVER_OLEVELS]={OSI_FLOAT,OSI_FLOAT,OSI_FLOAT};
-    char *ice_desc[FMSNOWCOVER_OLEVELS]={"P(ice)","P(water)","P(cloud)"};
+    char *ice_desc[FMSNOWCOVER_OLEVELS]={"P(ice/snow)","P(water/land)","P(cloud)"};
+    float cloudfree;
 
     statcoeffstr coeffs = {{{0}}};
     
@@ -211,7 +210,7 @@ int main(int argc, char *argv[]) {
     size = img.iw*img.ih;
     if (img.cover < 40.) {
 	fmlogmsg(where,
-	"The percentage coverage (%d%) of this scene is too small for further processing.",img.cover);
+	"The percentage coverage (%.0f%) of this scene is too small for further processing.",img.cover);
 	exit(FM_OK);
     }
 
@@ -317,8 +316,7 @@ int main(int argc, char *argv[]) {
     if (lm.d == NULL) {
       status = process_pixels4ice(img, NULL, NULL, nwp,
 				ice.d, classed, 2, coeffs);
-    }
-    else {
+    } else {
       status = process_pixels4ice(img, NULL, (unsigned char *)(lm.d->data), 
 				  nwp, ice.d, classed, 2, coeffs);
     }
@@ -381,6 +379,18 @@ int main(int argc, char *argv[]) {
     fmlogmsg(where,what);
     store_mitiff_result(opfn,classed,clinfo);
     free(opfn);
+
+   /*
+     * Add information on processed scenes, time and area
+     * identifications as well as valid image data coverage within the
+     * tile and estimated cloud free coverage of the scene.
+     */
+    printf(" cover: %f\n",img.cover);
+    cloudfree = findcloudfree(ice.d,img.iw,img.ih);
+    fmsec19702isodatetime(tofmsec1970(reftime), datestr);
+    if (updateindexfile(cfg.indexfile,fname,opfn,datestr,pname,img.cover,cloudfree)) {
+	fmerrmsg(where,"Could not update %s", cfg.indexfile);
+    }
 
     fprintf(stdout," ================================================\n");
 
@@ -456,7 +466,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	if (strncmp(pt,"IMGPATH",7) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for imgpath.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -465,7 +475,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"NWPPATH",7) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for nwppath.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -474,7 +484,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"CMPATH",6) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for cmpath.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -483,7 +493,7 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"LMPATH",6) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for lmpath.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
@@ -492,21 +502,30 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg) {
 	} else if (strncmp(pt,"PRODUCTPATH",11) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for productpath.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->productpath,"%s",pt);
-	}else if (strncmp(pt,"PROBTABNAME",11) == 0) {
+	} else if (strncmp(pt,"PROBTABNAME",11) == 0) {
 	    pt = strtok(NULL,token);
 	    if (!pt) {
-		fmerrmsg(where,"%s","strtok trouble.");
+		fmerrmsg(where,"%s","strtok trouble for probtabname.");
 		free(dummy);
 		return(FM_IO_ERR);
 	    }
 	    fmremovenewline(pt);
 	    sprintf(cfg->probtabname,"%s",pt);
+	} else if (strncmp(pt,"INDEXFILE",9) == 0) {
+	    pt = strtok(NULL,token);
+	    if (!pt) {
+		fmerrmsg(where,"%s","strtok trouble for indexfile.");
+		free(dummy);
+		return(FM_IO_ERR);
+	    }
+	    fmremovenewline(pt);
+	    sprintf(cfg->indexfile,"%s",pt);
 	}
     }
 
@@ -644,4 +663,65 @@ int putcoeffs(featstr *feat, dummystr dummies) {
   return(FM_OK);
 }
 
+float findcloudfree(datafield *d, int xsize, int ysize) {
+    char *where="findcloudfree";
+    int i, validpixels;
+    float cloudfree, notcovered;
 
+    for (i=0;i<FMSNOWCOVER_OLEVELS;i++) {
+	if (d[i].type != OSI_FLOAT) {
+	    fmerrmsg(where,"Data layer with wrong type %d.", i);
+	    exit(FM_OTHER_ERR);
+	}
+    }
+    notcovered = cloudfree = 0;
+    for (i=0;i<(xsize*ysize);i++) {
+	if (((float *) d[0].data)[i] == FMSNOWCOVERMISVAL_NOCOV) notcovered++;
+	if (((float *) d[0].data)[i] > ((float *) d[1].data)[i] > ((float *) d[2].data)[i]) cloudfree++;
+	if (((float *) d[1].data)[i] > ((float *) d[0].data)[i] > ((float *) d[2].data)[i]) cloudfree++;
+    }
+
+    notcovered /= (xsize*ysize);
+    cloudfree /= ((xsize*ysize)-notcovered);
+    printf(" cloudfree: %f\n", cloudfree);
+    printf(" notcovered: %f\n", notcovered);
+
+    return(cloudfree);
+}
+
+/*
+ * This only updates the index file, no checking of duplicates etc is
+ * done, that is taken care of by the process_snow script.
+ */
+int updateindexfile(char *filename, char *avhrrfile, char *fmsnowfile,
+    char *datetime, char *areaname, float validraw, float cloudfree) {
+
+    char *where="updateindexfile";
+    char productfname[100], *pt;
+    FILE *fp;
+
+    fmlogmsg(where,"Updating product directory index file.");
+
+    pt = rindex(fmsnowfile,'/');
+    sprintf(productfname,"%s",pt+1);
+
+    fp = fopen(filename,"a");
+    if (! fp) {
+	fmerrmsg(where,"Could not open %s",filename);
+	return(FM_IO_ERR);
+    }
+
+    fprintf(fp,"%s ",datetime);
+    fprintf(fp,"%s ",avhrrfile);
+    fprintf(fp,"%s ",productfname);
+    fprintf(fp,"%s ",areaname);
+    fprintf(fp,"%.0f ",validraw);
+    fprintf(fp,"%.0f\n",cloudfree*100.);
+
+    if (fclose(fp)) {
+	fmerrmsg(where,"Could not properly close %s", filename);
+	return(FM_IO_ERR);
+    }
+
+    return(FM_OK);
+}

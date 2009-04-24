@@ -41,7 +41,7 @@
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.8 2009-04-23 10:43:43 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.9 2009-04-24 12:23:43 steingod Exp $
  */ 
 
 #include <stdio.h>
@@ -91,6 +91,7 @@ typedef struct {
     char lmpath[FILELEN];
     char productpath[FILELEN];
     char probtabname[FILELEN];
+    char indexfile[FILELEN];
 } cfgstruct;
 
 /*
@@ -199,3 +200,6 @@ int rdstatcoeffs(char *coeffsfile, statcoeffstr *coeffs);
 double findprob(featstr feat, double x, char *whereami);
 int locstatcoeffs (dummystr dummies, statcoeffstr *cof);
 int putcoeffs(featstr *feat, dummystr dummies);
+float findcloudfree(datafield *d, int xsize, int ysize);
+int updateindexfile(char *filename, char *avhrrfile, char *fmsnowfile,
+    char *datetime, char *areaname, float validraw, float cloudfree); 

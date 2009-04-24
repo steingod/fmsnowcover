@@ -4,21 +4,25 @@
  * 
  * PURPOSE: 
  * Average (AVHRR) fmsnowcover product files to compound a cloudfree
- * snowmap.
+ * snowmap. The resulting product is tagged with the end time of the
+ * integration period.
  * 
- * SYNTAX: accusnow -s <dir_avhrrice> -d <date_start> 
+ * SYNTAX: accusnow -s <dir_fmsnow> -d <date_end> 
  *         -p <period> -a <pref_outf> -o <path_outf>
  *         (-t <satellite> -l <satlist> -m <arealist> -z)
  *
- *    <dir_avhrrice> : Directory with hdf5 files with avhrr ice data.
- *    <date_start>   : Start date of merging period.
- *    <period>       : Merging period in hours.
+ *    <dir_fmsnow>  : Directory with hdf5 files with fmsnow data.
+ *    <date_end>     : End date of merging period.
+ *    <period>       : Integration period in hours.
  *    <pref_outf>    : Prefix for output filename.
  *    <path_outf>    : Path for output file.
  *    <satellite>    : Name of one satellite if processing only one (optional).
  *    <satlist>      : File with satellites to use (optional).
  *    <arealist>     : File with tile areas to use (optional).
  *    -z             : Use threshold on satellite zenith angle (value from header file).
+ *
+ * NOTE:
+ * NA
  * 
  * AUTHOR: 
  * Steinar Eastwood, DNMI, 21.08.2000
@@ -29,7 +33,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.1 2009-04-23 10:43:43 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.2 2009-04-24 12:23:43 steingod Exp $
  */ 
 
  
@@ -47,7 +51,7 @@ void usage();
 
 int main(int argc, char *argv[]) 
 {    
-  char *errmsg="\n\tERROR(accusnow):";
+  char *where="fmaccusnow";
   extern char *optarg;
   char *dir_avhrrice, *date_start, *date_prod, *date_end;
   int sflg, dflg, pflg, aflg, oflg, tflg, lflg, mflg, zflg, cflg;
@@ -125,8 +129,8 @@ int main(int argc, char *argv[])
       sflg++;
       break;
     case 'd':
-      date_start = (char *) malloc(strlen(optarg)+1);
-      if (!strcpy(date_start, optarg)) exit(1);
+      date_end = (char *) malloc(strlen(optarg)+1);
+      if (!strcpy(date_end, optarg)) exit(1);
       dflg++;
       break;
     case 'p':
@@ -174,25 +178,35 @@ int main(int argc, char *argv[])
   if (lflg && tflg) {
     fprintf(stdout,
 	    "\n ERROR: do not give arguments l and t simultaneously\n\n");
-    exit(0);
+    exit(FM_OK);
   }
   
  
-  if (strlen(date_start) ==8 ) strcat(date_start,"00");
-  if (strlen(date_start) != 10) {
-    fprintf(stdout,
-	    "\n ERROR: date_start has wrong format, yyyymmddhh needed\n\n");
-    exit(0);
+  if (strlen(date_end) == 8 ) strcat(date_end,"00");
+  if (strlen(date_end) != 10) {
+    fmerrmsg(where,"Incorrect length of date_end, should be yyyymmddhh.");
+    exit(FM_IO_ERR);
   }
 
-  stime    = ymdh2fmsec1970(date_start,0);
-  etime    = stime + period*3600;
-  date_end = (char *) malloc(20+1);
+  etime = ymdh2fmsec1970(date_end,0);
+  stime = stime-period*3600;
+  date_start = (char *) malloc(20+1);
+  if (! date_start) {
+      fmerrmsg(where,"Could not allocate date_start.");
+      exit(FM_MEMALL_ERR);
+  }
   fmsec19702isodatetime(etime, date_end);
-  prodtime = stime + period*3600/2;
+  prodtime = etime;
   date_prod= (char *) malloc(20+1);
+  if (! date_prod) {
+      fmerrmsg(where,"Could not allocate date_prod.");
+      exit(FM_MEMALL_ERR);
+  }
   fmsec19702isodatetime(prodtime, date_prod);
-  ret      = tofmtime(prodtime,&timedate);
+  if (tofmtime(prodtime,&timedate)) {
+      fmerrmsg(where,"tofmtime failed on prodtime.");
+      exit(FM_IO_ERR);
+  }
 
   ctr = 0;
   fprintf(stdout,"\n\tAVHRR ice files dir:   %s \n", dir_avhrrice);
@@ -236,8 +250,7 @@ int main(int argc, char *argv[])
 	      satlistfile);
     }
     else if (numsat < 0) {
-      fprintf(stderr,"%s Could not read file %s\n",errmsg,satlistfile);
-      fprintf(stderr,"\t       Processing all available satnames.\n");
+      fmerrmsg(where,"Could not read %s, processing all passages.",satlistfile);
       lflg = 0;
     }
     else {
@@ -268,12 +281,10 @@ int main(int argc, char *argv[])
     if (numarea == 0) {
       fprintf(stderr,"\n\tWARNING! Found NO area tiles on file %s\n",
 	      arealistfile);
-      exit(0);
+      exit(FM_OK);
     }
     else if (numarea < 0) {
-      fprintf(stderr,"%s Could not read file %s\n",errmsg,arealistfile);
-      fprintf(stderr,
-	      "\t       Processing all available area tile names instead.\n");
+      fmerrmsg(where,"Could not read %s, processing all area tiles.", arealistfile);
       mflg = 0;
     }
     else {
@@ -308,8 +319,8 @@ int main(int argc, char *argv[])
   /* Reading directory, find all avhrrice files to process. */
   dirp_avhrrice = opendir(dir_avhrrice);
   if (!dirp_avhrrice) {
-    fprintf(stderr,"%s Could not open dir %s\n",errmsg,dir_avhrrice);
-    return(10);
+    fmerrmsg(where,"Could not open %s",dir_avhrrice);
+    return(FM_IO_ERR);
   }
 
   numf = 0;
@@ -355,9 +366,7 @@ int main(int argc, char *argv[])
       ret = read_hdf5_product(checkfile,&checkfileheader,1);/*header only*/
       free(checkfile);
       if (ret != 0) {
-	fprintf(stderr,"%s while trying to open file %s, \n",
-		errmsg,dirl_avhrrice->d_name);
-	fprintf(stderr,"\t skipping file.\n\n");
+	fmerrmsg(where,"Could not open %s, skipping file",dirl_avhrrice->d_name);
 	free_osihdf(&checkfileheader);
 	continue;
       }
@@ -453,8 +462,8 @@ int main(int argc, char *argv[])
 
   if (timedate.fm_hour > 23 || timedate.fm_min > 59 || timedate.fm_mday > 31 || timedate.fm_mon > 12 || 
       timedate.fm_year > 3000 || timedate.fm_year < 1978)  {
-    fprintf(stderr,"%s In input time/date. Exiting. \n",errmsg);
-    exit(2);
+    fmerrmsg(where,"Incorrect input date and time.");
+    exit(FM_IO_ERR);
   }
 
   /*Dette kan hentes fra første fil. Tar utgangspunkt i SAF-tilene. Om
@@ -498,8 +507,7 @@ int main(int argc, char *argv[])
       init_osihdf(&inputhdf[f]);
       ret=read_hdf5_product(infile_currenttile[f],&inputhdf[f], 1);
       if (ret != 0) {
-	fprintf(stderr,"%s while trying to read header of %s \n",errmsg,
-		infile_currenttile[f]);
+	fmerrmsg(where,"Could not read header of %s",infile_currenttile[f]);
       }
       if (inputhdf[f].h.iw != inputhdf[0].h.iw ||
 	  inputhdf[f].h.ih != inputhdf[0].h.ih ||
@@ -507,10 +515,8 @@ int main(int argc, char *argv[])
 	  inputhdf[f].h.Ay != inputhdf[0].h.Ay ||
 	  inputhdf[f].h.Bx != inputhdf[0].h.Bx ||
 	  inputhdf[f].h.By != inputhdf[0].h.By ) {
-	fprintf(stderr,
-		"%s Input files for tile %s are from different tiles!?\n",
-		errmsg,arealist[tile]);
-	exit(2);
+	fmerrmsg(where,"Input files for tile %s, are from different tiles.",arealist[tile]);
+	exit(FM_IO_ERR);
       }
     }
 
@@ -545,8 +551,8 @@ int main(int argc, char *argv[])
     probclear = (float *) malloc(safucs.iw*safucs.ih*sizeof(float));
     
     if (!class || !snowclass || !probsnow || !probclear) {
-      fprintf(stderr,"%s Could not allocate memory.\n",errmsg);
-      exit(3);
+      fmerrmsg(where,"Could not allocate memory for class, snowclass, probsnow or probclear");
+      exit(FM_MEMALL_ERR);
     }
 
   
@@ -565,8 +571,8 @@ int main(int argc, char *argv[])
       ret = average_merge_files(infile_currenttile, num_files_area[tile],
                      safucs, class, snowclass, probsnow, probclear, cloudlim); 
       if (ret != 0) {
-	fprintf(stderr,"%s while running \"average_merge_files\" \n",errmsg);
-	exit(10);
+	fmerrmsg(where,"Could not finish average_merge_files");
+	exit(FM_OTHER_ERR);
       }
     }
     
@@ -580,8 +586,8 @@ int main(int argc, char *argv[])
     /* Allocate hdf5 product */
     ret = malloc_osihdf(&snowprod,prod_ft,prod_desc);
     if (ret != 0) {
-      fprintf(stderr,"%s malloc_osisaf encountered an error.\n",errmsg);
-      return(3); /*rappa fra func_sst_hdf, annen return value?*/
+      fmerrmsg(where,"Could not run malloc_osihdf");
+      return(FM_MEMALL_ERR); 
     }
 
     for (i=0;i<safucs.iw*safucs.ih;i++){
@@ -602,8 +608,8 @@ int main(int argc, char *argv[])
 	    snowprod.h.day ,period,satstring);
     ret = store_hdf5_product(outfHDF, snowprod);
     if (ret != 0)  {
-      fprintf(stderr,"%s while creating HDF file.\n",errmsg);
-      exit(10);
+      fmerrmsg(where,"Could not create HDF file %s", outfHDF);
+      exit(FM_IO_ERR);
     }    
     
 
@@ -616,8 +622,8 @@ int main(int argc, char *argv[])
     ret = store_snow(outfMITIFF_class, snowprod.h, class, 
 			       CLASSLIMITS, class_desc,satstring);
     if (ret != 0)  { 
-      fprintf(stderr,"%s while creating MITIFF file.\n",errmsg);
-      exit(10); 
+      fmerrmsg(where,"Could not create MITIFF file %s", outfMITIFF_class);
+      exit(FM_IO_ERR);
     } 
     
 
@@ -630,8 +636,8 @@ int main(int argc, char *argv[])
     ret = store_snow(outfMITIFF_psnow, snowprod.h, snowclass, 
 			       PROBLIMITS, snow_desc,satstring);
     if (ret != 0)  {
-      fprintf(stderr,"%s while creating MITIFF file.\n",errmsg);
-      exit(10);
+      fmerrmsg(where,"Could not create MITIFF file %s", outfMITIFF_psnow);
+      exit(FM_IO_ERR);
     }
 
 
@@ -654,7 +660,7 @@ int main(int argc, char *argv[])
 
 
 
-  /* Deallocate more memory */
+  /* Free more memory */
   free(date_start);
   if (aflg) { free(pref_outf); }
   free(path_outf);
@@ -684,23 +690,19 @@ int main(int argc, char *argv[])
  fprintf(stdout,"\t=================================================\n");
 
 
-  exit(0);
+  exit(FM_OK);
 }
 
-
-
-
-void usage() 
-{
+void usage() {
     fprintf(stdout,"\n  SYNTAX: \n");
     fprintf(stdout,
-    "  accusnow -s <dir_avhrrice> -d <date_start> -p <period>\n");
+    "  accusnow -s <dir_avhrrice> -d <date_end> -p <period>\n");
     fprintf(stdout,"\t  -a <pref_outf> -o <path_outf> (-t <satellite name>\n");
     fprintf(stdout,
     "\t  -l <satlist> -c <cloudlimit> -m <arealist> -z) \n\n");
     fprintf(stdout,
     "  <dir_avhrrice> : Directory with hdf5 files with avhrr ice data.\n");
-    fprintf(stdout,"  <date_start>   : Start date of merging period\n");
+    fprintf(stdout,"  <date_end>   : End date of merging period\n");
     fprintf(stdout,"  <period>       : Merging period in hours.\n");
     fprintf(stdout,"  <pref_outf>    : Prefix for output filename ");
     fprintf(stdout,"(currently not in use!).\n");
@@ -714,5 +716,5 @@ void usage()
     "  <cloudlimit>   : Probability limit for class cloud (optional).\n");
     fprintf(stdout,"  -z             : Use threshold on satellite ");
     fprintf(stdout,"zenith angle (not in use!).\n\n");
-    exit(1);
+    exit(FM_OK);
 }

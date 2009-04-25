@@ -47,7 +47,7 @@
  * setup.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.7 2009-04-24 12:23:43 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.8 2009-04-25 20:57:05 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     unsigned int size;
     char fname[FILENAME],datestr[25];
     char pname[4];
-    char *lmaskf, *opfn;
+    char *lmaskf, *opfn1, *opfn2;
     char *infile, *cfgfile, *coffile;
     char *fnwc[3]={"h12sf","h12pl","h12ml"};
     unsigned char *classed;
@@ -357,28 +357,28 @@ int main(int argc, char *argv[]) {
     clinfo.Bx = img.Bx;
     clinfo.By = img.By;
 
-    opfn = (char *) malloc(FILELEN+5);
-    if (!opfn) exit(FM_IO_ERR);
-    sprintf(opfn,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.hdf5", 
+    opfn1 = (char *) malloc(FILELEN+5);
+    if (!opfn1) exit(FM_IO_ERR);
+    sprintf(opfn1,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.hdf5", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
-    sprintf(what,"Creating output file: %s", opfn);
+    sprintf(what,"Creating output file: %s", opfn1);
     fmlogmsg(where,what);
-    status = store_hdf5_product(opfn,ice);
-    free(opfn);
+    status = store_hdf5_product(opfn1,ice);
+    free(opfn1);
     if (status != 0) {
 	sprintf(what,"Trouble processing: %s",infile);
 	fmerrmsg(where,what);
     }
-    opfn = (char *) malloc(FILELEN+5);
-    if (!opfn) exit(FM_IO_ERR);
-    sprintf(opfn,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.mitiff", 
+    opfn2 = (char *) malloc(FILELEN+5);
+    if (!opfn2) exit(FM_IO_ERR);
+    sprintf(opfn2,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.mitiff", 
 	cfg.productpath,pname,
 	img.yy, img.mm, img.dd, img.ho, img.mi);
-    sprintf(what,"Creating output file: %s", opfn);
+    sprintf(what,"Creating output file: %s", opfn2);
     fmlogmsg(where,what);
-    store_mitiff_result(opfn,classed,clinfo);
-    free(opfn);
+    store_mitiff_result(opfn2,classed,clinfo);
+    free(opfn2);
 
    /*
      * Add information on processed scenes, time and area
@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
     printf(" cover: %f\n",img.cover);
     cloudfree = findcloudfree(ice.d,img.iw,img.ih);
     fmsec19702isodatetime(tofmsec1970(reftime), datestr);
-    if (updateindexfile(cfg.indexfile,fname,opfn,datestr,pname,img.cover,cloudfree)) {
+    if (updateindexfile(cfg.indexfile,fname,opfn1,datestr,pname,img.cover,cloudfree)) {
 	fmerrmsg(where,"Could not update %s", cfg.indexfile);
     }
 

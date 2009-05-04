@@ -33,7 +33,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.2 2009-04-24 12:23:43 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.3 2009-05-04 09:39:14 steingod Exp $
  */ 
 
  
@@ -125,11 +125,19 @@ int main(int argc, char *argv[])
     switch (ret) {
     case 's':
       dir_avhrrice = (char *) malloc(strlen(optarg)+1);
+      if (! dir_avhrrice) {
+	  fmerrmsg(where,"Could not allocate dir_avhrrice");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(dir_avhrrice, optarg)) exit(1);
       sflg++;
       break;
     case 'd':
       date_end = (char *) malloc(strlen(optarg)+1);
+      if (! date_end) {
+	  fmerrmsg(where,"Could not allocate date_end");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(date_end, optarg)) exit(1);
       dflg++;
       break;
@@ -139,26 +147,46 @@ int main(int argc, char *argv[])
       break;
     case 'a':
       pref_outf = (char *) malloc(strlen(optarg)+1);
+      if (! pref_outf) {
+	  fmerrmsg(where,"Could not allocate pref_outf");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(pref_outf, optarg)) exit(1); 
       aflg++; 
       break;
     case 'o':
       path_outf = (char *) malloc(strlen(optarg)+1);
+      if (! path_outf) {
+	  fmerrmsg(where,"Could not allocate path_outf");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(path_outf, optarg)) exit(1);
       oflg++;
       break;
     case 't':
       procsat = (char *) malloc(strlen(optarg)+1);
+      if (! procsat) {
+	  fmerrmsg(where,"Could not allocate procsat");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(procsat, optarg)) exit(1);
       tflg++;
       break;
     case 'l':
       satlistfile = (char *) malloc(strlen(optarg)+1);
+      if (! satlistfile) {
+	  fmerrmsg(where,"Could not allocate satlistfile");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(satlistfile, optarg)) exit(1);
       lflg++;
       break;
     case 'm':
       arealistfile = (char *) malloc(strlen(optarg)+1);
+      if (! arealistfile) {
+	  fmerrmsg(where,"Could not allocate arealistfile");
+	  exit(FM_MEMALL_ERR);
+      }
       if (!strcpy(arealistfile, optarg)) exit(1);
       mflg++;
       break;
@@ -240,42 +268,58 @@ int main(int argc, char *argv[])
   }
   
   satlist = (char **) malloc(MAXSAT*sizeof(char *)); /*flytte til etter if lfgl?*/
+  if (! satlist) {
+      fmerrmsg(where,"Could not allocate satlist");
+      exit(FM_MEMALL_ERR);
+  }
  
   /* Read satellite name list */
   numsat = 0;
   if (lflg) {
-    numsat = read_sat_area_list(satlistfile,satlist);
-    if (numsat == 0) {
-      fprintf(stderr,"\n\tFound NO satellites on file %s\n\texiting..\n\n",
-	      satlistfile);
-    }
-    else if (numsat < 0) {
-      fmerrmsg(where,"Could not read %s, processing all passages.",satlistfile);
-      lflg = 0;
-    }
-    else {
-      fprintf(stdout,"\n\tProcessing satellites (%d): \n\t  ",numsat);
-      satstring = (char *) malloc(LISTLEN*sizeof(char));
-      for (i=0;i<numsat;i++) { 
-	fprintf(stdout,"%s ",satlist[i]);
-	if (i != 0) strcat(satstring,"_");
-	strcat(satstring,satlist[i]);
+      numsat = read_sat_area_list(satlistfile,satlist);
+      if (numsat == 0) {
+	  fprintf(stderr,"\n\tFound NO satellites on file %s\n\texiting..\n\n",
+		  satlistfile);
+      } else if (numsat < 0) {
+	  fmerrmsg(where,"Could not read %s, processing all passages.",satlistfile);
+	  lflg = 0;
+      } else {
+	  fprintf(stdout,"\n\tProcessing satellites (%d): \n\t  ",numsat);
+	  satstring = (char *) malloc(LISTLEN*sizeof(char));
+	  if (! satstring) {
+	      fmerrmsg(where,"Could not allocate satstring");
+	      exit(FM_MEMALL_ERR);
+	  }
+	  for (i=0;i<numsat;i++) { 
+	      fprintf(stdout,"%s ",satlist[i]);
+	      if (i != 0) strcat(satstring,"_");
+	      strcat(satstring,satlist[i]);
+	  }
+	  fprintf(stdout,"\n");
       }
-      fprintf(stdout,"\n");
-    }
-  } 
-  else if (tflg) {
-    satstring = (char *) malloc(strlen(procsat)*sizeof(char));
-    sprintf(satstring,"%s",procsat);
-  }
-  else { /* No sat.name list given, need componet for filename */
-    satstring = (char *) malloc(strlen("allsats")*sizeof(char));
-    sprintf(satstring,"allsats");
-    fprintf(stdout,"\n\tProcessing all available satnames.\n");
+  } else if (tflg) {
+      satstring = (char *) malloc(strlen(procsat)*sizeof(char));
+      if (! satstring) {
+	  fmerrmsg(where,"Could not allocate satstring");
+	  exit(FM_MEMALL_ERR);
+      }
+      sprintf(satstring,"%s",procsat);
+  } else { /* No sat.name list given, need componet for filename */
+      satstring = (char *) malloc(strlen("allsats")*sizeof(char));
+      if (! satstring) {
+	  fmerrmsg(where,"Could not allocate satstring");
+	  exit(FM_MEMALL_ERR);
+      }
+      sprintf(satstring,"allsats");
+      fprintf(stdout,"\n\tProcessing all available satnames.\n");
   }
 
   numarea = 0;
   arealist = (char **) malloc(MAXAREA*sizeof(char *));
+  if (! arealist) {
+      fmerrmsg(where,"Could not allocate arealist");
+      exit(FM_MEMALL_ERR);
+  }
   if (mflg) {/* Read tile list */
     numarea = read_sat_area_list(arealistfile,arealist);
     if (numarea == 0) {
@@ -310,7 +354,15 @@ int main(int argc, char *argv[])
 
   /* Allocate and init. variables to handle sorting of files based on tile*/
   num_files_area = (int *)malloc(numarea*sizeof(int));
+  if (! num_files_area) {
+      fmerrmsg(where,"Could not allocate num_files_area");
+      exit(FM_MEMALL_ERR);
+  }
   num_files_area_counter = (int *)malloc(numarea*sizeof(int));
+  if (! num_files_area_counter) {
+      fmerrmsg(where,"Could not allocate num_files_area_counter");
+      exit(FM_MEMALL_ERR);
+  }
   for (i=0;i<numarea;i++){
     num_files_area[i] = num_files_area_counter[i] = 0;
   }
@@ -339,7 +391,15 @@ int main(int argc, char *argv[])
   rewinddir(dirp_avhrrice);
 
   infile_avhrrice = (char **) malloc(numf*sizeof(char *));
+  if (! infile_avhrrice) {
+      fmerrmsg(where,"Could not allocate infile_avhrrice");
+      exit(FM_MEMALL_ERR);
+  }
   infile_sorted   = (char **) malloc(numf*sizeof(char *));
+  if (! infile_sorted) {
+      fmerrmsg(where,"Could not allocate infile_sorted");
+      exit(FM_MEMALL_ERR);
+  }
   i = 0;
 
   /*Loop through files in input directory*/
@@ -361,6 +421,10 @@ int main(int argc, char *argv[])
 
       /*Check that file can be opened (this removes files of size zero!*/
       checkfile = (char *) malloc(256*sizeof(char));
+      if (! checkfile) {
+	  fmerrmsg(where,"Could not allocate checkfile");
+	  exit(FM_MEMALL_ERR);
+      }
       sprintf(checkfile,"%s/%s",dir_avhrrice,dirl_avhrrice->d_name);
       init_osihdf(&checkfileheader);
       ret = read_hdf5_product(checkfile,&checkfileheader,1);/*header only*/
@@ -418,7 +482,15 @@ int main(int argc, char *argv[])
 	      
       /*If all tests passed, add to list of ok files :-)*/
       infile_avhrrice[i] = (char *) malloc(256*sizeof(char));
+      if (! infile_avhrrice[i]) {
+	  fmerrmsg(where,"Could not allocate infile_avhrrice[%d]", i);
+	  exit(FM_MEMALL_ERR);
+      }
       infile_sorted[i]   = (char *) malloc(256*sizeof(char));
+      if (! infile_sorted[i]) {
+	  fmerrmsg(where,"Could not allocate infile_sorted[%d]", i);
+	  exit(FM_MEMALL_ERR);
+      }
       sprintf(infile_avhrrice[i],"%s/%s",dir_avhrrice,dirl_avhrrice->d_name);
       i ++;
       /*MAK adding this here*/
@@ -487,18 +559,27 @@ int main(int argc, char *argv[])
 
     /*creating list of files for this tile*/
     infile_currenttile = (char **) malloc(num_files_area[tile]*sizeof(char *));
+    if (! infile_currenttile) {
+	fmerrmsg(where,"Could not allocate infile_currenttile");
+	exit(FM_MEMALL_ERR);
+    }
     for (f=0;f<num_files_area[tile];f++) {
       infile_currenttile[f] = (char *) malloc(256*sizeof(char));
+      if (! infile_currenttile[f]) {
+	  fmerrmsg(where,"Could not allocate infile_currenttile[%d]", f);
+	  exit(FM_MEMALL_ERR);
+      }
       sprintf(infile_currenttile[f],infile_sorted[f+index_offset]);
     }
     /*for (f=0;f<num_files_area[tile];f++){
       fprintf(stdout,"%s\n",infile_currenttile[f]);
       }*/
 
-
-
-
     inputhdf = (osihdf *) malloc(num_files_area[tile]*sizeof(osihdf));
+    if (! inputhdf) {
+	fmerrmsg(where,"Could not allocate inputhdf");
+	exit(FM_MEMALL_ERR);
+    }
 
     init_osihdf(&snowprod); /*Dette init. kun headeren, ikke datafeltet!*/
 
@@ -546,15 +627,30 @@ int main(int argc, char *argv[])
 
 
     class = (unsigned char *) malloc(safucs.iw*safucs.ih*sizeof(char));
+    if (! class) {
+	fmerrmsg(where,"Could not allocate class");
+	exit(FM_MEMALL_ERR);
+    }
     snowclass = (unsigned char *) malloc(safucs.iw*safucs.ih*sizeof(char));
+    if (! snowclass) {
+	fmerrmsg(where,"Could not allocate snowclass");
+	exit(FM_MEMALL_ERR);
+    }
     probsnow = (float *) malloc(safucs.iw*safucs.ih*sizeof(float));
+    if (! probsnow) {
+	fmerrmsg(where,"Could not allocate probsnow");
+	exit(FM_MEMALL_ERR);
+    }
     probclear = (float *) malloc(safucs.iw*safucs.ih*sizeof(float));
+    if (! probclear) {
+	fmerrmsg(where,"Could not allocate probclear");
+	exit(FM_MEMALL_ERR);
+    }
     
     if (!class || !snowclass || !probsnow || !probclear) {
       fmerrmsg(where,"Could not allocate memory for class, snowclass, probsnow or probclear");
       exit(FM_MEMALL_ERR);
     }
-
   
     for (i=0;i<safucs.iw*safucs.ih;i++) {
       class[i]    = C_UNDEF; 
@@ -595,14 +691,12 @@ int main(int argc, char *argv[])
       ((float*)snowprod.d[1].data)[i] = probsnow[i];
       ((float*)snowprod.d[2].data)[i] = probclear[i];
     }
-    
-    
 
     fprintf(stdout,"\tCreating output files for tile %s:\n",arealist[tile]);
 
     /* create hdf product file */
     outfHDF = (char *) malloc(FILELEN+5);
-    if (!outfHDF) exit(3);
+    if (!outfHDF) exit(FM_MEMALL_ERR);
     sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d-%dhours_%s.hdf",path_outf,
 	    pref_outf,arealist[tile],snowprod.h.year,snowprod.h.month,
 	    snowprod.h.day ,period,satstring);
@@ -615,7 +709,7 @@ int main(int argc, char *argv[])
 
     /* create mitiff for classified image */
     outfMITIFF_class = (char *) malloc(FILELEN+5);
-    if (!outfMITIFF_class) exit(3);
+    if (!outfMITIFF_class) exit(FM_MEMALL_ERR);
     sprintf(outfMITIFF_class,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
 	    path_outf,pref_outf,pref_cl,arealist[tile],snowprod.h.year,
 	    snowprod.h.month,snowprod.h.day,period,satstring);
@@ -629,7 +723,7 @@ int main(int argc, char *argv[])
 
     /* create mitiff for classified ice probability image */
     outfMITIFF_psnow = (char *) malloc(FILELEN+5);
-    if (!outfMITIFF_psnow) exit(3);
+    if (!outfMITIFF_psnow) exit(FM_MEMALL_ERR);
     sprintf(outfMITIFF_psnow,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
 	    path_outf,pref_outf,pref_ps,arealist[tile],snowprod.h.year, 
 	    snowprod.h.month,snowprod.h.day,period,satstring);
@@ -656,9 +750,6 @@ int main(int argc, char *argv[])
     free(probclear);
     free_osihdf(&snowprod);
   } /*end for-loop for tile*/
-
-
-
 
   /* Free more memory */
   free(date_start);

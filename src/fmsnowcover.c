@@ -47,7 +47,7 @@
  * setup.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.8 2009-04-25 20:57:05 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.9 2009-05-04 07:02:46 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -365,7 +365,6 @@ int main(int argc, char *argv[]) {
     sprintf(what,"Creating output file: %s", opfn1);
     fmlogmsg(where,what);
     status = store_hdf5_product(opfn1,ice);
-    free(opfn1);
     if (status != 0) {
 	sprintf(what,"Trouble processing: %s",infile);
 	fmerrmsg(where,what);
@@ -378,7 +377,6 @@ int main(int argc, char *argv[]) {
     sprintf(what,"Creating output file: %s", opfn2);
     fmlogmsg(where,what);
     store_mitiff_result(opfn2,classed,clinfo);
-    free(opfn2);
 
    /*
      * Add information on processed scenes, time and area
@@ -393,6 +391,8 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stdout," ================================================\n");
+    free(opfn1);
+    free(opfn2);
 
     exit(FM_OK);
 }

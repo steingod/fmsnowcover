@@ -28,7 +28,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.5 2009-04-23 20:31:09 steingod Exp $
+# $Id: process-snow,v 1.6 2009-05-05 15:29:18 steingod Exp $
 #
 
 use strict;
@@ -53,7 +53,7 @@ $imgpath =~ s/\n//;
 @tmparr = grep /^PRODUCTPATH/,@fc;
 my $prodpath = (split / /,$tmparr[0])[1];
 $prodpath =~ s/\n//;
-my $logfile = $prodpath."/accusnow_log";
+my $logfile = $prodpath."/fmaccusnow.log";
 
 # Check when products last were updated
 opendir DH,"$prodpath" || die "Can't connect to $prodpath\n";
@@ -86,14 +86,11 @@ foreach $item (@f2p) {
 }
 
 # Accumulate snow products
-# må lese inn config fil og få kompilert programvaren
-$cryostime = time-$accutime;
+$cryostime = time;
 $myperiod = $accutime/3600.;
-#($c_sec,$c_min,$c_hour,$c_mday,$c_mon,$c_year,$c_wday,$c_yday,$c_isdst) 
 @mytimearr=gmtime($cryostime);
-
-$cryosdate = sprintf("%4d%02d%02d00",
-	$mytimearr[5]+1900,$mytimearr[4]+1,$mytimearr[3]);
+$cryosdate = sprintf("%4d%02d%02d%02d",
+	$mytimearr[5]+1900,$mytimearr[4]+1,$mytimearr[3],$mytimearr[2]);
 $mycommand = "$accusnow -s $prodpath -d $cryosdate -p $myperiod -o $prodpath -m $tilefile -c 0.4 > $logfile";
 if (system($mycommand)) {
     print "\nRunning $mycommand failed $!\n";

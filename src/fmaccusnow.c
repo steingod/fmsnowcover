@@ -33,7 +33,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.5 2009-05-05 11:14:36 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.6 2009-05-05 12:34:23 steingod Exp $
  */ 
 
  
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     extern char *optarg;
     char *dir_avhrrice, *date_start, *date_prod, *date_end;
     int sflg, dflg, pflg, aflg, oflg, tflg, lflg, mflg, zflg, cflg;
-    int period, i, j, f, t, tile, nrInput, ret, ind, numf, ctr;
+    int period, i, j, f, t, tile, nrInput, ret, ind, numf;
     int numsat, numarea;
     fmsec1970 stime, ftime, etime, prodtime;
     float cloudlim;
@@ -206,15 +206,16 @@ int main(int argc, char *argv[]) {
     }
 
     etime = ymdh2fmsec1970(date_end,0);
-    stime = stime-period*3600;
+    stime = etime-period*3600;
     date_start = (char *) malloc(DATESTRINGLENGTH*sizeof(char));
     if (! date_start) {
 	fmerrmsg(where,"Could not allocate date_start.");
 	exit(FM_MEMALL_ERR);
     }
+    fmsec19702isodatetime(stime, date_start);
     fmsec19702isodatetime(etime, date_end);
     prodtime = etime;
-    date_prod= (char *) malloc(20+1);
+    date_prod= (char *) malloc(DATESTRINGLENGTH*sizeof(char));
     if (! date_prod) {
 	fmerrmsg(where,"Could not allocate date_prod.");
 	exit(FM_MEMALL_ERR);
@@ -225,11 +226,9 @@ int main(int argc, char *argv[]) {
 	exit(FM_IO_ERR);
     }
 
-    ctr = 0;
-    fprintf(stdout,"\n\tAVHRR ice files dir:   %s \n", dir_avhrrice);
-    fprintf(stdout,"\tDate start:            %c", date_start[ctr]);
-    for (ctr=1;ctr<8;ctr++) {fprintf(stdout,"%c",date_start[ctr]);}
-    fprintf(stdout,"\n\tPeriod:                %d \n", period);
+    fprintf(stdout,"\tAVHRR ice files dir:   %s\n", dir_avhrrice);
+    fprintf(stdout,"\tPeriod:                %d hours\n", period);
+    fprintf(stdout,"\tDate start:            %s \n", date_start);
     fprintf(stdout,"\tDate end:              %s \n", date_end);
     fprintf(stdout,"\tDate product:          %s \n", date_prod);
     fprintf(stdout,"\tPeriod start:          %d \n", (int)stime);
@@ -237,23 +236,22 @@ int main(int argc, char *argv[]) {
     fprintf(stdout,"\tPath outfile:          %s \n", path_outf);
     if (aflg) {
 	fprintf(stdout,"\tPrefix outfile:        %s \n", pref_outf);
-    }
-    else {
+    } else {
 	pref_outf = defpref;
     }
 
     if (tflg) {
-	fprintf(stdout,"\n\tProcess only satellite: %s \n", procsat);
+	fprintf(stdout,"\tProcess only satellite: %s \n", procsat);
     }
     if (lflg) {
-	fprintf(stdout,"\n\tUsing list of satellites from file: %s \n", satlistfile);
+	fprintf(stdout,"\tUsing list of satellites from file: %s \n", satlistfile);
     }
     if (!cflg) {
 	cloudlim = DEFAULTCLOUD;
     }
-    fprintf(stdout,"\n\tUsing cloud probability limit: %.1f \n", cloudlim);
+    fprintf(stdout,"\tUsing cloud probability limit: %.1f \n", cloudlim);
     if (mflg) {
-	fprintf(stdout,"\n\tUsing area tiles from file: %s \n", arealistfile);
+	fprintf(stdout,"\tUsing area tiles from file: %s \n", arealistfile);
     }
 
     satlist = (char **) malloc(MAXSAT*sizeof(char *)); /*flytte til etter if lfgl?*/
@@ -262,7 +260,9 @@ int main(int argc, char *argv[]) {
 	exit(FM_MEMALL_ERR);
     }
 
-    /* Read satellite name list */
+    /* 
+     * Read satellite name list 
+     */
     numsat = 0;
     if (lflg) {
 	numsat = read_sat_area_list(satlistfile,satlist);
@@ -294,13 +294,13 @@ int main(int argc, char *argv[]) {
 	}
 	sprintf(satstring,"%s",procsat);
     } else { /* No sat.name list given, need componet for filename */
-	satstring = (char *) malloc(strlen("allsats")*sizeof(char));
+	satstring = (char *) malloc(LISTLEN*sizeof(char));
 	if (! satstring) {
 	    fmerrmsg(where,"Could not allocate satstring");
 	    exit(FM_MEMALL_ERR);
 	}
 	sprintf(satstring,"allsats");
-	fprintf(stdout,"\n\tProcessing all available satnames.\n");
+	fprintf(stdout,"\tProcessing all available satnames.\n");
     }
 
     numarea = 0;
@@ -312,27 +312,25 @@ int main(int argc, char *argv[]) {
     if (mflg) {/* Read tile list */
 	numarea = read_sat_area_list(arealistfile,arealist);
 	if (numarea == 0) {
-	    fprintf(stderr,"\n\tWARNING! Found NO area tiles on file %s\n",
-		    arealistfile);
-	    exit(FM_OK);
+	    fmerrmsg(where,"Found no area tiles on %s",arealistfile);
+	    exit(FM_IO_ERR);
 	}
 	else if (numarea < 0) {
 	    fmerrmsg(where,"Could not read %s, processing all area tiles.", arealistfile);
 	    mflg = 0;
 	}
 	else {
-	    fprintf(stdout,"\n\tProcessing area tiles (%d): \n\t  ",numarea);
+	    fprintf(stdout,"\tProcessing area tiles (%d):\n",numarea);
 	    for (i=0;i<numarea;i++) { 
-		fprintf(stdout,"%s ",arealist[i]);
+		fprintf(stdout,"\t%s\n",arealist[i]);
 	    }
-	    fprintf(stdout,"\n");
 	}
     }
     if (mflg == 0) { /*hard code a list of all known areas*/
 	numarea = TOTAREAS;
 	arealist = default_arealist;
 	fprintf(stdout,
-		"\n\tProcessing files for tiles on default tilelist (%d):\n\t ",numarea);
+		"\tProcessing files for tiles on default tilelist (%d):\n\t ",numarea);
 	for (i=0;i<numarea;i++) {
 	    printf("%s ",arealist[i]);
 	}
@@ -340,8 +338,10 @@ int main(int argc, char *argv[]) {
     }
     fprintf(stdout,"\n");
 
-
-    /* Allocate and init. variables to handle sorting of files based on tile*/
+    /* 
+     * Allocate and initialise variables to handle sorting of files 
+     * based on tile
+     */
     num_files_area = (int *)malloc(numarea*sizeof(int));
     if (! num_files_area) {
 	fmerrmsg(where,"Could not allocate num_files_area");
@@ -356,8 +356,9 @@ int main(int argc, char *argv[]) {
 	num_files_area[i] = num_files_area_counter[i] = 0;
     }
 
-
-    /* Reading directory, find all avhrrice files to process. */
+    /* 
+     * Reading directory, find all avhrrice files to process. 
+     */
     dirp_avhrrice = opendir(dir_avhrrice);
     if (!dirp_avhrrice) {
 	fmerrmsg(where,"Could not open %s",dir_avhrrice);
@@ -391,15 +392,21 @@ int main(int argc, char *argv[]) {
     }
     i = 0;
 
-    /*Loop through files in input directory*/
+    /*
+     * Loop through files in input directory.
+     */
     while ((dirl_avhrrice = readdir(dirp_avhrrice)) != NULL) {
 
-	/*Check input filename*/
+	/*
+	 * Check input filename
+	 */
 	if (strncmp(dirl_avhrrice->d_name,BASEFNAME,strlen(BASEFNAME)) 
 		== 0 &&	strstr(dirl_avhrrice->d_name,".hdf") != NULL && 
 		strlen(dirl_avhrrice->d_name) >= MINLENFNAME) {
 
-	    /*Check time of file*/
+	    /*
+	     * Check time of file
+	     */
 	    sret = strncpy(datestr,&dirl_avhrrice->d_name[10],12);
 	    datestr[12] = '\0';
 	    sprintf(datestr_ymdhms,"%s00",datestr);
@@ -408,7 +415,10 @@ int main(int argc, char *argv[]) {
 		continue;
 	    }
 
-	    /*Check that file can be opened (this removes files of size zero!*/
+	    /*
+	     * Check that file can be opened (this removes files of size
+	     * zero!
+	     */
 	    checkfile = (char *) malloc(256*sizeof(char));
 	    if (! checkfile) {
 		fmerrmsg(where,"Could not allocate checkfile");
@@ -416,7 +426,7 @@ int main(int argc, char *argv[]) {
 	    }
 	    sprintf(checkfile,"%s/%s",dir_avhrrice,dirl_avhrrice->d_name);
 	    init_osihdf(&checkfileheader);
-	    ret = read_hdf5_product(checkfile,&checkfileheader,1);/*header only*/
+	    ret = read_hdf5_product(checkfile,&checkfileheader,1);
 	    free(checkfile);
 	    if (ret != 0) {
 		fmerrmsg(where,"Could not open %s, skipping file",dirl_avhrrice->d_name);
@@ -424,9 +434,13 @@ int main(int argc, char *argv[]) {
 		continue;
 	    }
 
-	    /*Check satellite name*/
-	    if (lflg || tflg) { /* satname is not part of input filename, must */
-		satfound = 0;     /* check the header to see if file should be kept */
+	    /*
+	     * Check satellite name. satname is not part of input
+	     * filename, must  check the header to see if file should be
+	     * kept.
+	     */
+	    if (lflg || tflg) { 
+		satfound = 0;
 		if (tflg) {
 		    if (strstr(checkfileheader.h.source,procsat)) {
 			satfound++;
@@ -441,26 +455,13 @@ int main(int argc, char *argv[]) {
 		} 
 		free_osihdf(&checkfileheader);
 		if (!satfound) {
-		    /*fprintf(stdout,"\tFile not in satname list, skipping %s\n",
-		      dirl_avhrrice->d_name);*/
 		    continue;
 		}
 	    }
-	    /* else { /\*avhrrice currently not nice for metop, removing metop!*\/ */
-	    /* checkfile = (char *) malloc(256*sizeof(char)); */
-	    /* sprintf(checkfile,"%s/%s",dir_avhrrice,dirl_avhrrice->d_name); */
-	    /* init_osihdf(&checkfileheader); */
-	    /* ret = read_hdf5_product(checkfile,&checkfileheader,1);/\*header only*\/ */
-	    /* free(checkfile); */
-	    /* if (strcmp(checkfileheader.h.source,"NOAA-p02")== 0){ */
-	    /*   fprintf(stdout,"\tSkipping METOP for now..(%s)\n", */
-	    /* 	  dirl_avhrrice->d_name); */
-	    /*  continue; */
-	    /*  } */
-	    /* } /\*this else-part can be removed when metop files are ok*\/ */
 
-
-	    /*Check tile, this returns the element number*/
+	    /*
+	     * Check tile, this returns the element number.
+	     */
 	    ind = find_sat_area_index(arealist,numarea,dirl_avhrrice->d_name);
 	    if (ind < 0) {
 		fprintf(stdout,"\tFile not in area tile list, skipping %s\n",
@@ -468,8 +469,9 @@ int main(int argc, char *argv[]) {
 		continue;
 	    }
 
-
-	    /*If all tests passed, add to list of ok files :-)*/
+	    /*
+	     * If all tests passed, add to list of ok files :-)
+	     */
 	    infile_avhrrice[i] = (char *) malloc(256*sizeof(char));
 	    if (! infile_avhrrice[i]) {
 		fmerrmsg(where,"Could not allocate infile_avhrrice[%d]", i);
@@ -482,7 +484,6 @@ int main(int argc, char *argv[]) {
 	    }
 	    sprintf(infile_avhrrice[i],"%s/%s",dir_avhrrice,dirl_avhrrice->d_name);
 	    i ++;
-	    /*MAK adding this here*/
 	    num_files_area[ind]++;
 	}
     }
@@ -490,18 +491,19 @@ int main(int argc, char *argv[]) {
     nrInput = i;
 
     if (nrInput == 0) {
-	fprintf(stdout,"\n\tNo files to be processed, exiting\n\n");
-	return(0);
+	fmerrmsg(where,"No files to be processed.");
+	exit(FM_OK);
     }
 
-    fprintf(stdout,"\n\tFiles to be processed: (%d,%d) \n",nrInput,numf);
+    fmlogmsg(where,"Found a number of files to integrate over. %d files fulfilled the time constraints, %d files fulfilled the satid constraints.", numf, nrInput);
     for (i=0;i<nrInput;i++) {
 	fprintf(stdout,"\t%2d %s\n",i,infile_avhrrice[i]);
     }
 
-    fprintf(stdout,"\n\tSorting input files..\n");
+    fmlogmsg(where,"Sorting the file to process.");
     for (t=0;t<numarea;t++) {
-	fprintf(stdout,"\t Tile: %s  Number of files: %d\n",
+	fprintf(stdout,
+		"\t\tTile: %s  Number of files: %d\n",
 		arealist[t],num_files_area[t]);
 	num_files_area_counter[t] = 0;
     }
@@ -520,9 +522,13 @@ int main(int argc, char *argv[]) {
 	}
     }
 
-
-    if (timedate.fm_hour > 23 || timedate.fm_min > 59 || timedate.fm_mday > 31 || timedate.fm_mon > 12 || 
-	    timedate.fm_year > 3000 || timedate.fm_year < 1978)  {
+    /*
+     * Check the time to be associated with the integrated product (i.e.
+     * the time of the integration.
+     */
+    if (timedate.fm_hour > 23 || timedate.fm_min > 59 || 
+	timedate.fm_mday > 31 || timedate.fm_mon > 12 || 
+	timedate.fm_year > 3000 || timedate.fm_year < 1978)  {
 	fmerrmsg(where,"Incorrect input date and time.");
 	exit(FM_IO_ERR);
     }
@@ -545,7 +551,9 @@ int main(int argc, char *argv[]) {
 	    index_offset += num_files_area[t];
 	}
 
-	/*creating list of files for this tile*/
+	/*
+	 * Creating list of files for this tile
+	 */
 	infile_currenttile = (char **) malloc(num_files_area[tile]*sizeof(char *));
 	if (! infile_currenttile) {
 	    fmerrmsg(where,"Could not allocate infile_currenttile");

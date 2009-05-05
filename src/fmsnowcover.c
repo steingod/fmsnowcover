@@ -47,7 +47,7 @@
  * setup.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.9 2009-05-04 07:02:46 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.10 2009-05-05 13:08:00 steingod Exp $
  */
  
 #include <fmsnowcover.h>
@@ -677,8 +677,12 @@ float findcloudfree(datafield *d, int xsize, int ysize) {
     notcovered = cloudfree = 0;
     for (i=0;i<(xsize*ysize);i++) {
 	if (((float *) d[0].data)[i] == FMSNOWCOVERMISVAL_NOCOV) notcovered++;
-	if (((float *) d[0].data)[i] > ((float *) d[1].data)[i] > ((float *) d[2].data)[i]) cloudfree++;
-	if (((float *) d[1].data)[i] > ((float *) d[0].data)[i] > ((float *) d[2].data)[i]) cloudfree++;
+	if (((float *) d[0].data)[i] > ((float *) d[1].data)[i] > ((float *) 
+	    d[2].data)[i]) {
+	    cloudfree++;
+	} else if (((float *) d[1].data)[i] > ((float *) d[0].data)[i] > ((float *) d[2].data)[i]) {
+	    cloudfree++;
+	}
     }
 
     notcovered /= (xsize*ysize);

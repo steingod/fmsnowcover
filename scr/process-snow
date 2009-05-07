@@ -28,7 +28,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.7 2009-05-07 15:39:03 steingod Exp $
+# $Id: process-snow,v 1.8 2009-05-07 15:47:27 steingod Exp $
 #
 
 use strict;
@@ -109,7 +109,5 @@ foreach $item (@prodfiles) {
     $prodmtime = (stat("$prodpath/$item"))[9];
     unlink "$prodpath/$item" if ($prodmtime < $updated-$storagetime);
 }
-
-# Send files externally
 
 exit;

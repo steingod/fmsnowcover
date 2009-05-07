@@ -28,10 +28,11 @@
 # NA
 #
 # CVS_ID:
-# $Id: process-snow,v 1.6 2009-05-05 15:29:18 steingod Exp $
+# $Id: process-snow,v 1.7 2009-05-07 15:39:03 steingod Exp $
 #
 
 use strict;
+use File::Copy;
 
 my(@tmparr, $item, $prodmtime, $imgmtime, $updated, @f2p);
 my($mycommand,$myperiod,$cryostime,$cryosdate,@mytimearr);
@@ -53,7 +54,10 @@ $imgpath =~ s/\n//;
 @tmparr = grep /^PRODUCTPATH/,@fc;
 my $prodpath = (split / /,$tmparr[0])[1];
 $prodpath =~ s/\n//;
-my $logfile = $prodpath."/fmaccusnow.log";
+my $logfile = $prodpath."/fmsnowcover.log";
+@mytimearr = gmtime(time);
+$cryosdate = sprintf("_%4d%02d",$mytimearr[5]+1900,$mytimearr[4]+1);
+$logfile =~ s/\.log/$cryosdate\.log/;
 
 # Check when products last were updated
 opendir DH,"$prodpath" || die "Can't connect to $prodpath\n";
@@ -82,7 +86,7 @@ die "No files to process." if ($#f2p <= 1);
 # Process files
 foreach $item (@f2p) {
     warn "Error while processing $item" 
-	if (system("$fmsnowcover -c $fmsnowcovercfg -i $item") != 0);
+	if (system("$fmsnowcover -c $fmsnowcovercfg -i $item >> $logfile") != 0);
 }
 
 # Accumulate snow products
@@ -91,7 +95,7 @@ $myperiod = $accutime/3600.;
 @mytimearr=gmtime($cryostime);
 $cryosdate = sprintf("%4d%02d%02d%02d",
 	$mytimearr[5]+1900,$mytimearr[4]+1,$mytimearr[3],$mytimearr[2]);
-$mycommand = "$accusnow -s $prodpath -d $cryosdate -p $myperiod -o $prodpath -m $tilefile -c 0.4 > $logfile";
+$mycommand = "$accusnow -s $prodpath -d $cryosdate -p $myperiod -o $prodpath -m $tilefile -c 0.4 >> $logfile";
 if (system($mycommand)) {
     print "\nRunning $mycommand failed $!\n";
 }

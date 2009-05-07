@@ -33,7 +33,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.6 2009-05-05 12:34:23 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.7 2009-05-07 15:27:32 steingod Exp $
  */ 
 
  
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     char datestr_ymdhms[15];
     char *satlistfile, *arealistfile, **satlist, **arealist;
     fmtime timedate;
-    fmucsref safucs;
+    fmucsref refucs;
     struct dirent *dirl_avhrrice;
     DIR *dirp_avhrrice;
     char *defpref = "accusnow";
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     char *pref_cl = "cl";
     int satfound;
     char *satstring; /*To be used in output filenames*/
-    osihdf snowprod, checkfileheader; /*To be renamed*/
+    osihdf snowprod, checkfileheader;
     osihdf *inputhdf;
     char *prod_desc[FMACCUSNOWPROD_LEVELS] = {"class","P(snow)","P(clear)"};
     osi_dtype prod_ft[FMACCUSNOWPROD_LEVELS] = {CLASS_DT,PROB_DT,PROB_DT};
@@ -567,9 +567,6 @@ int main(int argc, char *argv[]) {
 	    }
 	    sprintf(infile_currenttile[f],infile_sorted[f+index_offset]);
 	}
-	/*for (f=0;f<num_files_area[tile];f++){
-	  fprintf(stdout,"%s\n",infile_currenttile[f]);
-	  }*/
 
 	inputhdf = (osihdf *) malloc(num_files_area[tile]*sizeof(osihdf));
 	if (! inputhdf) {
@@ -577,9 +574,15 @@ int main(int argc, char *argv[]) {
 	    exit(FM_MEMALL_ERR);
 	}
 
-	init_osihdf(&snowprod); /*Dette init. kun headeren, ikke datafeltet!*/
+	/*
+	 * Initialise the structure to hold the data
+	 */
+	init_osihdf(&snowprod);
 
-	/*reading headers of all files on list to compare + collect info*/
+	/*
+	 * Read headers of all files on list to compare products and collect
+	 * information. Products must cover the same area.
+	 */
 	for (f=0;f<num_files_area[tile];f++) {
 	    init_osihdf(&inputhdf[f]);
 	    ret=read_hdf5_product(infile_currenttile[f],&inputhdf[f], 1);
@@ -614,30 +617,29 @@ int main(int argc, char *argv[]) {
 	sprintf(snowprod.h.product, "%s", inputhdf[0].h.product);
 	sprintf(snowprod.h.projstr, "%s", inputhdf[0].h.projstr);
 
-	safucs.Ax = snowprod.h.Ax;
-	safucs.Ay = snowprod.h.Ay;
-	safucs.Bx = snowprod.h.Bx;
-	safucs.By = snowprod.h.By;
-	safucs.iw = snowprod.h.iw;
-	safucs.ih = snowprod.h.ih;
+	refucs.Ax = snowprod.h.Ax;
+	refucs.Ay = snowprod.h.Ay;
+	refucs.Bx = snowprod.h.Bx;
+	refucs.By = snowprod.h.By;
+	refucs.iw = snowprod.h.iw;
+	refucs.ih = snowprod.h.ih;
 
-
-	class = (unsigned char *) malloc(safucs.iw*safucs.ih*sizeof(char));
+	class = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
 	if (! class) {
 	    fmerrmsg(where,"Could not allocate class");
 	    exit(FM_MEMALL_ERR);
 	}
-	snowclass = (unsigned char *) malloc(safucs.iw*safucs.ih*sizeof(char));
+	snowclass = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
 	if (! snowclass) {
 	    fmerrmsg(where,"Could not allocate snowclass");
 	    exit(FM_MEMALL_ERR);
 	}
-	probsnow = (float *) malloc(safucs.iw*safucs.ih*sizeof(float));
+	probsnow = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
 	if (! probsnow) {
 	    fmerrmsg(where,"Could not allocate probsnow");
 	    exit(FM_MEMALL_ERR);
 	}
-	probclear = (float *) malloc(safucs.iw*safucs.ih*sizeof(float));
+	probclear = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
 	if (! probclear) {
 	    fmerrmsg(where,"Could not allocate probclear");
 	    exit(FM_MEMALL_ERR);
@@ -648,41 +650,46 @@ int main(int argc, char *argv[]) {
 	    exit(FM_MEMALL_ERR);
 	}
 
-	for (i=0;i<safucs.iw*safucs.ih;i++) {
+	for (i=0;i<refucs.iw*refucs.ih;i++) {
 	    class[i]    = C_UNDEF; 
 	    snowclass[i] = 0;
 	    probsnow[i]  = PROB_MISVAL;
 	    probclear[i]= PROB_MISVAL;
 	}
 
-	/*Her skjer midlinga!*/
-
+	/*
+	 * Do the time integration using the method chosen...
+	 */
 	if (num_files_area[tile] > 0) {
 	    fprintf(stdout,"\n\tNow averaging tile %s (%d files)..\n",
 		    arealist[tile],num_files_area[tile]);
 	    ret = average_merge_files(infile_currenttile, num_files_area[tile],
-		    safucs, class, snowclass, probsnow, probclear, cloudlim); 
+		    refucs, class, snowclass, probsnow, probclear, cloudlim); 
 	    if (ret != 0) {
 		fmerrmsg(where,"Could not finish average_merge_files");
 		exit(FM_OTHER_ERR);
 	    }
 	}
 
+	/*
+	 * Do some freeing, freeing snowprod is not required as not data
+	 * have been allocated yet.
+	 */
 	for (f=0;f<num_files_area[tile];f++) {
 	    free(infile_currenttile[f]);
-	    /*free_osihdf(&inputhdf[f]); Unødvendig siden ikke_datafeltet_ er allokert uansett. Denne freer kun datafeltet.*/
 	}
 	free(infile_currenttile);
 
-
-	/* Allocate hdf5 product */
+	/* 
+	 * Allocate the storage required to handle the hdf5 product 
+	 */
 	ret = malloc_osihdf(&snowprod,prod_ft,prod_desc);
 	if (ret != 0) {
 	    fmerrmsg(where,"Could not run malloc_osihdf");
 	    return(FM_MEMALL_ERR); 
 	}
 
-	for (i=0;i<safucs.iw*safucs.ih;i++){
+	for (i=0;i<refucs.iw*refucs.ih;i++){
 	    ((int*)snowprod.d[0].data)[i] = class[i];
 	    ((float*)snowprod.d[1].data)[i] = probsnow[i];
 	    ((float*)snowprod.d[2].data)[i] = probclear[i];
@@ -690,20 +697,24 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stdout,"\tCreating output files for tile %s:\n",arealist[tile]);
 
-	/* create hdf product file */
+	/* 
+	 * Create the output HDF5 product file 
+	 */
 	outfHDF = (char *) malloc(FILELEN+5);
 	if (!outfHDF) exit(FM_MEMALL_ERR);
-	sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d-%dhours_%s.hdf",path_outf,
-		pref_outf,arealist[tile],snowprod.h.year,snowprod.h.month,
-		snowprod.h.day ,period,satstring);
+	sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d%02d-%dhours_%s.hdf",path_outf,
+		pref_outf,arealist[tile],
+		snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.day,
+		period,satstring);
 	ret = store_hdf5_product(outfHDF, snowprod);
 	if (ret != 0)  {
 	    fmerrmsg(where,"Could not create HDF file %s", outfHDF);
 	    exit(FM_IO_ERR);
 	}    
 
-
-	/* create mitiff for classified image */
+	/* 
+	 * Create MITIFF for the classified image 
+	 */
 	outfMITIFF_class = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_class) exit(FM_MEMALL_ERR);
 	sprintf(outfMITIFF_class,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
@@ -716,8 +727,9 @@ int main(int argc, char *argv[]) {
 	    exit(FM_IO_ERR);
 	} 
 
-
-	/* create mitiff for classified ice probability image */
+	/* 
+	 * Create MITIFF for classified ice probability image 
+	 */
 	outfMITIFF_psnow = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_psnow) exit(FM_MEMALL_ERR);
 	sprintf(outfMITIFF_psnow,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
@@ -730,13 +742,13 @@ int main(int argc, char *argv[]) {
 	    exit(FM_IO_ERR);
 	}
 
-
 	fprintf(stdout,"\t%s\n",outfHDF);
 	fprintf(stdout,"\t%s\n",outfMITIFF_class);
 	fprintf(stdout,"\t%s\n\n",outfMITIFF_psnow);
 
-
-	/* Deallocate memory */
+	/* 
+	 * Free some memory, check that everything is handled!! 
+	 */
 	free(outfHDF); 
 	free(outfMITIFF_class);
 	free(outfMITIFF_psnow);
@@ -745,15 +757,21 @@ int main(int argc, char *argv[]) {
 	free(probsnow);
 	free(probclear);
 	free_osihdf(&snowprod);
-    } /*end for-loop for tile*/
+    } /* end for-loop for tile */
 
-    /* Free more memory */
+    /* 
+     * Free some more memory used outside the tilehandling
+     */
     free(date_start);
-    if (aflg) { free(pref_outf); }
+    if (aflg) { 
+	free(pref_outf); 
+    }
     free(path_outf);
     free(satstring);
 
-    for (i=0;i<numsat;i++) { free(satlist[i]); }
+    for (i=0;i<numsat;i++) { 
+	free(satlist[i]); 
+    }
     free(satlist);
 
     if (mflg) {
@@ -775,7 +793,6 @@ int main(int argc, char *argv[]) {
     if (mflg) {free(arealistfile);}
 
     fprintf(stdout,"\t=================================================\n");
-
 
     exit(FM_OK);
 }

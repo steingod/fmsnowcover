@@ -33,7 +33,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.7 2009-05-07 15:27:32 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.8 2009-05-07 15:29:31 steingod Exp $
  */ 
 
  
@@ -703,9 +703,9 @@ int main(int argc, char *argv[]) {
 	outfHDF = (char *) malloc(FILELEN+5);
 	if (!outfHDF) exit(FM_MEMALL_ERR);
 	sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d%02d-%dhours_%s.hdf",path_outf,
-		pref_outf,arealist[tile],
-		snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.day,
-		period,satstring);
+	    pref_outf,arealist[tile],
+	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
+	    period,satstring);
 	ret = store_hdf5_product(outfHDF, snowprod);
 	if (ret != 0)  {
 	    fmerrmsg(where,"Could not create HDF file %s", outfHDF);
@@ -717,9 +717,11 @@ int main(int argc, char *argv[]) {
 	 */
 	outfMITIFF_class = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_class) exit(FM_MEMALL_ERR);
-	sprintf(outfMITIFF_class,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
-		path_outf,pref_outf,pref_cl,arealist[tile],snowprod.h.year,
-		snowprod.h.month,snowprod.h.day,period,satstring);
+	sprintf(outfMITIFF_class,
+	    "%s/%s-%s_%s_%04d%02d%02d%02d-%dhours_%s.mitiff",
+	    path_outf,pref_outf,pref_cl,arealist[tile],
+	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
+	    period,satstring);
 	ret = store_snow(outfMITIFF_class, snowprod.h, class, 
 		CLASSLIMITS, class_desc,satstring);
 	if (ret != 0)  { 
@@ -732,9 +734,11 @@ int main(int argc, char *argv[]) {
 	 */
 	outfMITIFF_psnow = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_psnow) exit(FM_MEMALL_ERR);
-	sprintf(outfMITIFF_psnow,"%s/%s-%s_%s_%04d%02d%02d-%dhours_%s.mitiff",
-		path_outf,pref_outf,pref_ps,arealist[tile],snowprod.h.year, 
-		snowprod.h.month,snowprod.h.day,period,satstring);
+	sprintf(outfMITIFF_psnow,
+	    "%s/%s-%s_%s_%04d%02d%02d%02d-%dhours_%s.mitiff",
+	    path_outf,pref_outf,pref_ps,arealist[tile],
+	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
+	    period,satstring);
 	ret = store_snow(outfMITIFF_psnow, snowprod.h, snowclass, 
 		PROBLIMITS, snow_desc,satstring);
 	if (ret != 0)  {

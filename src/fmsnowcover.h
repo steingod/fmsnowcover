@@ -39,9 +39,10 @@
  * Mari Anne Killie, METNO/FOU, 31.01.2008: See avhrrice_pap.c
  * Mari Anne Killie, METNO/FOU, 26.08.2008: Added A3b in struct
  * pinpstr and edited for r3a1/r3b1 in struct surfstr
+ * Mari Anne Killie, METNO/FOU, 08.05.2009: snow added, d34 removed.
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.9 2009-04-24 12:23:43 steingod Exp $
+ * $Id: fmsnowcover.h,v 1.10 2009-05-11 13:29:50 mariak Exp $
  */ 
 
 #include <stdio.h>
@@ -66,6 +67,7 @@
 #define FMSNOWCOVERMISVAL_LAND -992
 #define FMSNOWCOVERMISVAL_3A -993
 #define FMSNOWSUNZEN 85.
+#define FMSNOWLANDLIM 200 /* Temp. fix to separate land from sea in new lmask*/
 
 /*
  * Some useful data constants to use in the software.
@@ -151,12 +153,12 @@ typedef struct {
   featstr r21;
   featstr r3a1;
   featstr r3b1;
-  featstr d34;
   featstr dt;
 } surfstr;
 
 typedef struct {
   surfstr ice;
+  surfstr snow;
   surfstr cloud;
   surfstr water;
   surfstr land;

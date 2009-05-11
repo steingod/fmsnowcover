@@ -59,10 +59,11 @@
  * introducing fm_ch3brefl.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.7 2009-04-23 10:43:43 steingod Exp $
+ * $Id: pix_proc.c,v 1.8 2009-05-11 13:30:39 mariak Exp $
  */ 
 
 #include <fmsnowcover.h>
+/*#undef FMSNOWCOVER_HAVE_LIBUSENWP*/
 
 int process_pixels4ice(fmio_img img, unsigned char *cmask[], 
     unsigned char *lmask, nwpice nwp, datafield *probs, 
@@ -119,7 +120,6 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
     cpar.saz= -99;
     cpar.tdiff=-99;
     cpar.algo = algo;
-    cpar.lmask = -99;
 
     fm_img2slopes(img,&calib); /*collects gain and intercept*/
 
@@ -184,6 +184,8 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 		    cpar.daytime3b = 1;
 		}
 	    }
+
+	    cpar.lmask = 0;
 	    if (lmask == NULL) {
 		if (i == 0) {
 		    fmlogmsg(where,
@@ -247,7 +249,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	     * Adding this to prevent classification when probabilities do
 	     * not sum to 1.
 	     */
-	    if (p.pice+p.pfree+p.pcloud < 0.95 || p.pice+p.pfree+p.pcloud > 1.05){
+	    if (p.pice+p.pfree+p.pcloud<0.95 || p.pice+p.pfree+p.pcloud>1.05){
 		continue; 
 	    }
  

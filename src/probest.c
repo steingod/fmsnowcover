@@ -3,9 +3,9 @@
  * probest
  *
  * PURPOSE:
- * To estimate the probability of sea ice, open water and clouds given a
- * set of AVHRR observations, with the possible extension of NWP data
- * using a Bayes approach.
+ * To estimate the probability of sea ice/snow, clouds or open
+ * water/clear land given a set of AVHRR observations, with the
+ * possible extension of NWP data using a Bayes approach.
  *
  * REQUIREMENTS:
  * NA
@@ -14,7 +14,7 @@
  * o Full set of AVHRR observations
  *
  * OUTPUT:
- * o Probabilities of sea ice, open water and clouds
+ * o Probabilities of sea ice/snow, open water/land and clouds
  *
  * NOTES:
  * Definitions of either Gamma or Normal distributions should be put in a
@@ -41,9 +41,10 @@
  * Mari Anne Killie, METNO/FOU, 13.10.2008: adopting for the
  * reflective part of 3B to be used (introducing r3b1 to replace d34 +
  * renaming existing r31 to r3a1)
+ * Mari Anne Killie, METNO/FOU, 08.05.2009: d34 removed, snow introduced.
  *
  * CVS_ID:
- * $Id: probest.c,v 1.4 2009-03-30 13:42:53 steingod Exp $
+ * $Id: probest.c,v 1.5 2009-05-11 13:30:39 mariak Exp $
  */
 
 #include <stdio.h>
@@ -51,14 +52,14 @@
 #include <math.h>
 #include <string.h> 
 #include <fmsnowcover.h>
-
+/* #undef FMSNOWCOVER_HAVE_LIBUSENWP */
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
-    double r21, r3a1, d34, r3b1;
+    double r21, r3a1, r3b1;
     double pa1gi, pa1gc, pa1gf;
-    double pr21gi, pr3a1gi, pdtgi, pd34gi, pr3b1gi;
-    double pr21gf, pr3a1gf, pdtgf, pd34gf, pr3b1gf;
-    double pr21gc, pr3a1gc, pdtgc, pd34gc, pr3b1gc;
+    double pr21gi, pr3a1gi, pdtgi, pr3b1gi;
+    double pr21gf, pr3a1gf, pdtgf, pr3b1gf;
+    double pr21gc, pr3a1gc, pdtgc, pr3b1gc;
     /*double pigr21, pigr31;*/
     double denomsum;
     /*double pice=0.3333, pfree=0.3333, pcloud=0.3333;*/
@@ -70,69 +71,60 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
      */
     r21 = cpa.A2/cpa.A1;
     if (cpa.daytime3b) {
-      d34 = cpa.T3-cpa.T4;
-      r3b1 = cpa.A3b/cpa.A1;
+      r3b1 = cpa.A3b/(cpa.A1/cos(fmdeg2rad(cpa.soz)));
     } else {
       r3a1 = cpa.A3/cpa.A1; 
     }
    
-    pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
-   
-    pr21gi = findprob( cof.ice.r21, r21,"ice r21" );
-    
-    if (cpa.daytime3b) {
-     	pd34gi = findprob( cof.ice.d34, d34,"ice d34" );
-	if (pd34gi < 0) pd34gi = 0;
+    /*Snow or sea ice*/
+    if (cpa.lmask > FMSNOWLANDLIM) { /*Snow*/
+      pa1gi = findprob( cof.snow.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"snow a1");
+      pr21gi = findprob( cof.snow.r21, r21, "snow r21" );
+      if (cpa.daytime3b) {
+	pr3b1gi = findprob( cof.snow.r3b1, r3b1, "snow r3b1" );
+      } else {
+   	pr3a1gi = findprob( cof.snow.r3a1, r3a1, "snow r3a1" );
+      }
+      pdtgi = findprob( cof.snow.dt, cpa.tdiff, "snow dt" );
+    } else { /*Sea ice*/
+      pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
+      pr21gi = findprob( cof.ice.r21, r21, "ice r21" );
+      if (cpa.daytime3b) {
 	pr3b1gi = findprob( cof.ice.r3b1, r3b1, "ice r3b1" );
-    } else {
+      } else {
    	pr3a1gi = findprob( cof.ice.r3a1, r3a1, "ice r3a1" );
+      }
+      pdtgi = findprob( cof.ice.dt, cpa.tdiff, "ice dt" );
     }
-    
-    pdtgi = findprob( cof.ice.dt, cpa.tdiff,"ice dt" );
 
+    /*Clouds*/
     pa1gc = findprob( cof.cloud.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"cloud a1");
-
     pr21gc = findprob( cof.cloud.r21, r21,"cloud r21" );
-   
     if (cpa.daytime3b) {
-	pd34gc = findprob( cof.cloud.d34, d34, "cloud d34" );
-	if (pd34gc < 0) pd34gc = 0;
 	pr3b1gc = findprob( cof.cloud.r3b1, r3b1, "cloud r3b1" );
     } else {
 	pr3a1gc = findprob( cof.cloud.r3a1, r3a1, "cloud r3a1" );
     }
-
     pdtgc = findprob( cof.cloud.dt, cpa.tdiff,"cloud dt");
 
-    if (cpa.lmask > 1) { /*Landmask recognized land*/
+    /*Land or water*/
+    if (cpa.lmask > FMSNOWLANDLIM) { /*Land*/
       pa1gf = findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
-      
-      pr21gf = findprob( cof.land.r21, r21,"land r21" );
-
+      pr21gf = findprob( cof.land.r21, r21, "land r21" );
       if (cpa.daytime3b) {
-	pd34gf = findprob( cof.land.d34, d34,"land d34" );
-	if (pd34gf < 0) pd34gf = 0;
 	pr3b1gf = findprob( cof.land.r3b1, r3b1, "land r3b1");
       } else {
- 	pr3a1gf = findprob( cof.land.r3a1, r3a1,"land r3a1" );
+ 	pr3a1gf = findprob( cof.land.r3a1, r3a1, "land r3a1" );
       }
-      
-      pdtgf = findprob( cof.land.dt, cpa.tdiff,"land dt" );
-
-    } else {/*Landmask recognized water, or no landmask in use*/
-    
+      pdtgf = findprob( cof.land.dt, cpa.tdiff, "land dt" );
+    } else { /*Water*/
       pa1gf=findprob( cof.water.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"water a1");
-
-      pr21gf = findprob( cof.water.r21, r21,"water r21" );
-   
+      pr21gf = findprob( cof.water.r21, r21, "water r21" );
       if (cpa.daytime3b) {
-	pd34gf = findprob( cof.water.d34, d34,"water d34" );
-	if (pd34gf < 0) pd34gf = 0;
 	pr3b1gf = findprob( cof.water.r3b1, r3b1, "water r3b1");
       } else {
- 	pr3a1gf = findprob( cof.water.r3a1, r3a1,"water r3a1" );
+ 	pr3a1gf = findprob( cof.water.r3a1, r3a1, "water r3a1" );
       }
-      
       pdtgf = findprob( cof.water.dt, cpa.tdiff,"water dt" );
     }
 
@@ -151,21 +143,19 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     #endif
 
     /*Used to easily remove signatures when testing*/
-    /*pa1gi = pa1gf = pa1gc = 1.; */
-    /*pr21gi= pr21gf= pr21gc= 1.; */
-    /*pr3b1gi=pr3b1gf=pr3b1gc=1.; */
-
-
-    /*This one is to be properly removed when finished testing*/
-    pd34gi= pd34gc= pd34gf= 1.;
+    /*pa1gi  = pa1gf  = pa1gc = 1.;*/
+    /*pr21gi = pr21gf = pr21gc= 1.;*/
+    /*pr3b1gi= pr3b1gf= pr3b1gc=1.;*/
+    /*pr3a1gi= pr3a1gf= pr3a1gc=1.;*/
+    /*pdtgi  = pdtgc  = pdtgf = 1.;*/
 
     if (cpa.daytime3b) {
-	denomsum = (pr21gi*pd34gi*pr3b1gi*pa1gi*pdtgi*pice)
-	    +(pr21gf*pd34gf*pr3b1gf*pa1gf*pdtgf*pfree)
-	    +(pr21gc*pd34gc*pr3b1gc*pa1gc*pdtgc*pcloud);
-	p->pice = (pr21gi*pd34gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
-	p->pfree = (pr21gf*pd34gf*pr3b1gf*pa1gf*pdtgf*pfree)/denomsum;
-	p->pcloud = (pr21gc*pd34gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
+	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
+	    +(pr21gf*pr3b1gf*pa1gf*pdtgf*pfree)
+	    +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
+	p->pice = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
+	p->pfree = (pr21gf*pr3b1gf*pa1gf*pdtgf*pfree)/denomsum;
+	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
     } else {
 	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
 	    +(pr21gf*pr3a1gf*pa1gf*pdtgf*pfree)

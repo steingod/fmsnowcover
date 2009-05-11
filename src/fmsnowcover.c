@@ -45,13 +45,16 @@
  * Øystein Godøy, METNO/FOU, 07.04.2009: The statement above has been
  * changed to FMSNOWCOVER_HAVE_LIBUSENWP for compliance with the Autoconf
  * setup.
+ * Mari Anne Killie, METNO/FOU, 08.05.2009: some modifications for
+ * landmask + surface. d34 removed.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.10 2009-05-05 13:08:00 steingod Exp $
+ * $Id: fmsnowcover.c,v 1.11 2009-05-11 13:29:50 mariak Exp $
  */
  
 #include <fmsnowcover.h>
 #include <unistd.h>
+/*#undef FMSNOWCOVER_HAVE_LIBUSENWP*/
 
 int main(int argc, char *argv[]) {
 
@@ -153,16 +156,16 @@ int main(int argc, char *argv[]) {
     }
     if (strstr(fname,"ns") != NULL) {
 	sprintf(pname,"%s","ns");
-	sprintf(lmaskf,"%s/lmask_%s.hdf5",cfg.lmpath,"nse");
+	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dnns");
     } else if (strstr(fname,"at") != NULL) {
 	sprintf(pname,"%s","at");
-	sprintf(lmaskf,"%s/lmask_%s.hdf5",cfg.lmpath,"atl");
+	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dnat");
     } else if (strstr(fname,"nr") != NULL) {
 	sprintf(pname,"%s","nr");
-	sprintf(lmaskf,"%s/lmask_%s.hdf5",cfg.lmpath,"nrw");
+	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dnnr");
     } else if (strstr(fname,"gr") != NULL) {
 	sprintf(pname,"%s","gr");
-	sprintf(lmaskf,"%s/lmask_%s.hdf5",cfg.lmpath,"grl");
+	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dngr");
     } else {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
@@ -208,6 +211,7 @@ int main(int argc, char *argv[]) {
     iinfo.Bx = img.Bx;
     iinfo.By = img.By;
     size = img.iw*img.ih;
+    printf(" Image cover: %.2f\n",img.cover);
     if (img.cover < 40.) {
 	fmlogmsg(where,
 	"The percentage coverage (%.0f%) of this scene is too small for further processing.",img.cover);
@@ -236,14 +240,14 @@ int main(int argc, char *argv[]) {
 
     /*
      * Get land/sea mask, accepted if within 0.5 km of the image.
-     * This should probably be added agin in the future, but is left out
-     * until further evaluation...
+     * Reintroduced to determine wheter coeffs for land or sea should be used.
      */
     
     lm.d = NULL;
     if (lmask_located = fopen(lmaskf,"r")) {
       fprintf(stdout," Reading land/sea mask (GTOPO30 based):\n %s\n", lmaskf);
       status = read_hdf5_product(lmaskf, &lm, 0);
+      fclose(lmask_located);
       if (status != 0) {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
@@ -277,9 +281,12 @@ int main(int argc, char *argv[]) {
      * Loading the statistical coeffs into statcoeffs struct           
      */
     fmlogmsg(where,"Loading statistical coefficients from \n\t%s", coffile);
-    if (rdstatcoeffs(coffile,&coeffs) != 0) {
-      fmerrmsg(where," Trouble reading statistical coefficients, exiting...");
-      exit(FM_IO_ERR);
+    ret = rdstatcoeffs(coffile,&coeffs);
+    if (ret) {
+      /*fmerrmsg(where," Trouble reading statistical coefficients, exiting..");
+	exit(FM_IO_ERR);*/
+      printf(" WARNING: %d potential issues encountered ",ret);
+      printf("when loading coefficients\n");
     }
 
     /*
@@ -307,7 +314,8 @@ int main(int argc, char *argv[]) {
     classed = (unsigned char *) malloc(size*sizeof(char));
     if (!classed) {
 	sprintf(what,
-	"Could not allocate memory for classed array while processing : %s\n",infile);
+	"Could not allocate memory for classed array while processing : %s\n",
+		infile);
 	fmerrmsg(where,what);
 	exit(FM_MEMALL_ERR);
     }
@@ -369,6 +377,7 @@ int main(int argc, char *argv[]) {
 	sprintf(what,"Trouble processing: %s",infile);
 	fmerrmsg(where,what);
     }
+
     opfn2 = (char *) malloc(FILELEN+5);
     if (!opfn2) exit(FM_IO_ERR);
     sprintf(opfn2,"%s/fmsnow_%s_%4d%02d%02d%02d%02d.mitiff", 
@@ -389,6 +398,7 @@ int main(int argc, char *argv[]) {
     if (updateindexfile(cfg.indexfile,fname,opfn1,datestr,pname,img.cover,cloudfree)) {
 	fmerrmsg(where,"Could not update %s", cfg.indexfile);
     }
+
 
     fprintf(stdout," ================================================\n");
     free(opfn1);
@@ -555,8 +565,10 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   ssize_t read;
   size_t len = 0;
   dummystr dummies = {" "," ",' ',0.,0.,0.};
-  int j;
-  
+  int j, ret;
+
+  ret = 0; 
+
   fpi = fopen(coeffsfile,"r");
   if (!fpi) { 
     sprintf(what,"Unable to open file %s",coeffsfile);
@@ -581,7 +593,7 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
       return(FM_IO_ERR);
     }
     else {
-      locstatcoeffs(dummies,cof);
+      ret += locstatcoeffs(dummies,cof);
       sprintf(dummies.surf," ");
       sprintf(dummies.feat," ");
       dummies.key = ' ';
@@ -592,30 +604,36 @@ int rdstatcoeffs (char *coeffsfile, statcoeffstr *cof){
   if (line) free(line);
   fclose(fpi);
   
-  return(FM_OK);
+  return(ret);
 }
 
 /*search through statcoeffstr to find right location for parameters*/
 int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
   char *where="locstatcoeffs";
   char what[FMSNOWCOVER_MSGLENGTH];
-  int featflg,surfflg;
+  int featflg,surfflg,ret;
 
   featflg = surfflg = 0;
  
   if (!strcmp(dummies.surf,"ice")) { /*strcmp returns 0 if match!*/
     if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->ice.a1,dummies);
     else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->ice.r21,dummies);
-    else if (!strcmp(dummies.feat,"d34")) putcoeffs(&cof->ice.d34,dummies);
     else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->ice.r3a1,dummies);
     else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->ice.r3b1,dummies);
     else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->ice.dt,dummies);
     else featflg++;
   } 
+  else if (!strcmp(dummies.surf,"snow")) { /*strcmp returns 0 if match!*/
+    if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->snow.a1,dummies);
+    else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->snow.r21,dummies);
+    else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->snow.r3a1,dummies);
+    else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->snow.r3b1,dummies);
+    else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->snow.dt,dummies);
+    else featflg++;
+  }
   else if (!strcmp(dummies.surf,"cloud")) {
     if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->cloud.a1,dummies);
     else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->cloud.r21,dummies);
-    else if (!strcmp(dummies.feat,"d34")) putcoeffs(&cof->cloud.d34,dummies);
     else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->cloud.r3a1,dummies);
     else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->cloud.r3b1,dummies);
     else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->cloud.dt,dummies);
@@ -624,7 +642,6 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
   else if (!strcmp(dummies.surf,"water")) {
     if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->water.a1,dummies);
     else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->water.r21,dummies);
-    else if (!strcmp(dummies.feat,"d34")) putcoeffs(&cof->water.d34,dummies);
     else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->water.r3a1,dummies);
     else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->water.r3b1,dummies);
     else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->water.dt,dummies);
@@ -633,7 +650,6 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
   else if (!strcmp(dummies.surf,"land")) {
     if (!strcmp(dummies.feat,"a1")) putcoeffs(&cof->land.a1,dummies);
     else if (!strcmp(dummies.feat,"r21")) putcoeffs(&cof->land.r21,dummies);
-    else if (!strcmp(dummies.feat,"d34")) putcoeffs(&cof->land.d34,dummies);
     else if (!strcmp(dummies.feat,"r3a1")) putcoeffs(&cof->land.r3a1,dummies);
     else if (!strcmp(dummies.feat,"r3b1")) putcoeffs(&cof->land.r3b1,dummies);
     else if (!strcmp(dummies.feat,"dt"))  putcoeffs(&cof->land.dt,dummies);
@@ -641,6 +657,7 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
   }
   else surfflg++;
 
+  /*
   if (featflg || surfflg) {
     if (featflg) sprintf(what,"Feature '%s' not recognised for surface %s\n",
 	      dummies.feat,dummies.surf);
@@ -648,8 +665,9 @@ int locstatcoeffs (dummystr dummies, statcoeffstr *cof){
     fmerrmsg(where,what);
     exit(FM_OK);
   }
-
-  return(FM_OK);
+  */
+  ret = featflg+surfflg;
+  return(ret);
 }
 
 /*place stat. parameters at right location in statcoeffstr*/

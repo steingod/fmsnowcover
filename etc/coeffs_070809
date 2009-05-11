@@ -1,0 +1,69 @@
+########
+# Table contains statistical coefficients needed in probest.c
+########
+# 
+# The coefficients are based on training data from March to May 2007
+# (NOAA-18), February 2008 (NOAA-18) and Februrary 2009 (NOAA-17 and
+# NOAA-18).
+#
+# ice: coefficients are based on training data for snow on sea ice.
+# 
+# snow: coefficients are based on training data for snow in mountain,
+# forest and grassland.  
+# 
+# cloud: coefficients are based on training data for cloud over land
+# and cloud over water.
+#
+# r3b1: the values in the table are found by evaluating the expression
+# 'a3b/(k1/cos(solar angle*pi/180))'. Values for 'a3b/k1' are included
+# here in case of further testing:
+# ice	r3b1	n	0.1141613	0.1677167	0
+# snow	r3b1	n	0.0719718	0.08307846	0
+# cloud	r3b1	n	0.814432	2.000339	0
+# water	r3b1	n	0.2493744	0.2984166	0
+# land	r3b1	n	0.5854023	0.178672	0
+#
+# dt: for the surfaces 'ice', 'cloud' and 'water', the coefficients
+# for dt are taken from _______. For the surface 'land' the coeffs for
+# 'water' are used, and for 'snow', the coefficients for 'ice' are used.
+#
+########
+#
+# LINE FORMAT: surface (ice/cloud/water/land), 
+# feature (a1,r21,r3a1,r3b1,dt), pdf-code (n/g/t), par1, par2, par3
+# 
+# pdf-code = 'n': normal distribution -> par1 is mean, par2 is standard
+# deviation and par3 is not in use.
+# pdf-code = 'g': gamma distribution -> par1 is alpha, par2 is beta and
+# par3 is not in use.
+# pdf-code = 't': 3-parameter gamma distribution -> par1 is alpha, par2 is beta
+# and par3 is gamma. 
+#
+# Note: all lines not starting with '#' will be read.
+#
+#surf.	feat.	code	par1		par2		par3
+ice	a1	n	56.28432	10.59245	0
+ice	r21	n	0.849512	0.1035101	0
+ice	r3a1	n	0.1186385	0.05849505 	0
+ice	r3b1	n	0.01819690	0.01587715	0
+ice	dt	n	4.321039	6.261954	0
+snow	a1	n	49.6754		20.97159	0
+snow	r21	n	0.8754824	0.1555307	0
+snow	r3a1	n	0.1728445	0.07297933	0
+snow	r3b1	n	0.0273016	0.02549709	0
+snow	dt	n	4.321039	6.261954	0
+cloud	a1	n	55.85365	14.78555	0
+cloud	r21	n	0.9128154	0.08670341	0
+cloud	r3a1	n	0.6690058	0.2216875	0
+cloud	r3b1	n	0.1901366	0.1331275	0
+cloud	dt	n	19.56302	15.36650	0
+water	a1	n	7.552976	2.471333	0
+water	r21	n	0.4639897	0.06464453	0
+water	r3a1	n	0.1169045	0.0906175	0
+water	r3b1	n	0.06353492	0.06767656	0
+water	dt	n	19.56302	15.36650	0
+land	a1	n	7.933469	2.125764	0
+land	r21	n	1.889108	0.3935855	0
+land	r3a1	n	1.392030	0.2381562	0
+land	r3b1	n	0.3689924	0.1173226	0
+land	dt	n	19.56302	15.36650	0

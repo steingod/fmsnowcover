@@ -12,6 +12,7 @@
  *
  * INPUT:
  * o Full set of AVHRR observations
+ * o NWP data
  *
  * OUTPUT:
  * o Probabilities of sea ice/snow, open water/land and clouds
@@ -42,9 +43,11 @@
  * reflective part of 3B to be used (introducing r3b1 to replace d34 +
  * renaming existing r31 to r3a1)
  * Mari Anne Killie, METNO/FOU, 08.05.2009: d34 removed, snow introduced.
+ * Mari Anne Killie, METNO/FOU, 08.09.2009: using 3 classes over land,
+ * 3 over water and 4 over coast.
  *
  * CVS_ID:
- * $Id: probest.c,v 1.5 2009-05-11 13:30:39 mariak Exp $
+ * $Id: probest.c,v 1.6 2009-09-09 16:06:42 mariak Exp $
  */
 
 #include <stdio.h>
@@ -56,14 +59,16 @@
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
     double r21, r3a1, r3b1;
-    double pa1gi, pa1gc, pa1gf;
-    double pr21gi, pr3a1gi, pdtgi, pr3b1gi;
-    double pr21gf, pr3a1gf, pdtgf, pr3b1gf;
-    double pr21gc, pr3a1gc, pdtgc, pr3b1gc;
+    double pa1gi, pr21gi, pr3a1gi, pdtgi, pr3b1gi;
+    double pa1gc, pr21gc, pr3a1gc, pdtgc, pr3b1gc;
+    double pa1gs, pr21gs, pr3a1gs, pdtgs, pr3b1gs;
+    double pa1gw, pr21gw, pr3a1gw, pdtgw, pr3b1gw;
+    double pa1gl, pr21gl, pr3a1gl, pdtgl, pr3b1gl;
     /*double pigr21, pigr31;*/
     double denomsum;
     /*double pice=0.3333, pfree=0.3333, pcloud=0.3333;*/
-    double pice=0.5, pfree=0.5, pcloud=0.5;
+    double pice=0.5, psnow=0.5, pcloud=0.5, pwater=0.5, pland=0.5;
+    /*double pfree=0.5*/
     /*double picegobs;*/
     
     /*
@@ -75,28 +80,22 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     } else {
       r3a1 = cpa.A3/cpa.A1; 
     }
-   
-    /*Snow or sea ice*/
-    if (cpa.lmask > FMSNOWLANDLIM) { /*Snow*/
-      pa1gi = findprob( cof.snow.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"snow a1");
-      pr21gi = findprob( cof.snow.r21, r21, "snow r21" );
-      if (cpa.daytime3b) {
-	pr3b1gi = findprob( cof.snow.r3b1, r3b1, "snow r3b1" );
-      } else {
-   	pr3a1gi = findprob( cof.snow.r3a1, r3a1, "snow r3a1" );
-      }
-      pdtgi = findprob( cof.snow.dt, cpa.tdiff, "snow dt" );
-    } else { /*Sea ice*/
-      pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
-      pr21gi = findprob( cof.ice.r21, r21, "ice r21" );
-      if (cpa.daytime3b) {
-	pr3b1gi = findprob( cof.ice.r3b1, r3b1, "ice r3b1" );
-      } else {
-   	pr3a1gi = findprob( cof.ice.r3a1, r3a1, "ice r3a1" );
-      }
-      pdtgi = findprob( cof.ice.dt, cpa.tdiff, "ice dt" );
-    }
 
+    /*Ice and snow*/
+    pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
+    pa1gs = findprob( cof.snow.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"snow a1");
+    pr21gi = findprob( cof.ice.r21, r21, "ice r21" );
+    pr21gs = findprob( cof.snow.r21, r21, "snow r21" );
+    if (cpa.daytime3b) {
+      pr3b1gi = findprob( cof.ice.r3b1, r3b1, "ice r3b1" );
+      pr3b1gs = findprob( cof.snow.r3b1, r3b1, "snow r3b1" );
+    } else {
+      pr3a1gi = findprob( cof.ice.r3a1, r3a1, "ice r3a1" );
+      pr3a1gs = findprob( cof.snow.r3a1, r3a1, "snow r3a1" );
+    }
+    pdtgi = findprob( cof.ice.dt, cpa.tdiff, "ice dt" );
+    pdtgs = findprob( cof.snow.dt, cpa.tdiff, "snow dt" );
+    
     /*Clouds*/
     pa1gc = findprob( cof.cloud.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"cloud a1");
     pr21gc = findprob( cof.cloud.r21, r21,"cloud r21" );
@@ -107,26 +106,21 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     }
     pdtgc = findprob( cof.cloud.dt, cpa.tdiff,"cloud dt");
 
-    /*Land or water*/
-    if (cpa.lmask > FMSNOWLANDLIM) { /*Land*/
-      pa1gf = findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
-      pr21gf = findprob( cof.land.r21, r21, "land r21" );
-      if (cpa.daytime3b) {
-	pr3b1gf = findprob( cof.land.r3b1, r3b1, "land r3b1");
-      } else {
- 	pr3a1gf = findprob( cof.land.r3a1, r3a1, "land r3a1" );
-      }
-      pdtgf = findprob( cof.land.dt, cpa.tdiff, "land dt" );
-    } else { /*Water*/
-      pa1gf=findprob( cof.water.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"water a1");
-      pr21gf = findprob( cof.water.r21, r21, "water r21" );
-      if (cpa.daytime3b) {
-	pr3b1gf = findprob( cof.water.r3b1, r3b1, "water r3b1");
-      } else {
- 	pr3a1gf = findprob( cof.water.r3a1, r3a1, "water r3a1" );
-      }
-      pdtgf = findprob( cof.water.dt, cpa.tdiff,"water dt" );
+    /*Land and water*/
+    pa1gl=findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
+    pa1gw=findprob( cof.water.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"water a1");
+    pr21gl = findprob( cof.land.r21, r21, "land r21" );
+    pr21gw = findprob( cof.water.r21, r21, "water r21" );
+    if (cpa.daytime3b) {
+      pr3b1gl = findprob( cof.land.r3b1, r3b1, "land r3b1");
+      pr3b1gw = findprob( cof.water.r3b1, r3b1, "water r3b1");
+    } else {
+      pr3a1gl = findprob( cof.land.r3a1, r3a1, "land r3a1" );
+      pr3a1gw = findprob( cof.water.r3a1, r3a1, "water r3a1" );
     }
+    pdtgl = findprob( cof.land.dt, cpa.tdiff, "land dt" );
+    pdtgw = findprob( cof.water.dt, cpa.tdiff,"water dt" );
+    
 
     /*
      * Use Bayes theorem and estimate probability for ice.
@@ -139,30 +133,68 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     */
 
     #ifndef FMSNOWCOVER_HAVE_LIBUSENWP
-    pdtgi = pdtgc = pdtgf = 1.;
+    pdtgi = pdtgs = pdtgc = pdtgl = pdtgw = 1.;
     #endif
 
     /*Used to easily remove signatures when testing*/
-    /*pa1gi  = pa1gf  = pa1gc = 1.;*/
-    /*pr21gi = pr21gf = pr21gc= 1.;*/
-    /*pr3b1gi= pr3b1gf= pr3b1gc=1.;*/
-    /*pr3a1gi= pr3a1gf= pr3a1gc=1.;*/
-    /*pdtgi  = pdtgc  = pdtgf = 1.;*/
+    /*pa1gi  = pa1gs  = pa1gc  = pa1gl  = pa1gw  = 1.;*/
+    /*pr21gi = pr21gs = pr21gc = pr21gl = pr21gw = 1.;*/
+    /*pr3b1gi= pr3b1gs= pr3b1gc= pr3b1gl= pr3b1gw= 1.;*/
+    /*pr3a1gi= pr3a1gs= pr3a1gc= pr3a1gl= pr3a1gw= 1.;*/
+    /*pdtgi  = pdtgs  = pdtgc  = pdtgl  = pdtgw  = 1.;*/
 
-    if (cpa.daytime3b) {
+    if (cpa.lmask == FMSNOWSEA) { /*Water: use classes sea ice/water/cloud*/
+      if (cpa.daytime3b) {
 	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
-	    +(pr21gf*pr3b1gf*pa1gf*pdtgf*pfree)
-	    +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
+	          +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)
+	          +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
-	p->pfree = (pr21gf*pr3b1gf*pa1gf*pdtgf*pfree)/denomsum;
-	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
-    } else {
+	p->pfree =(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)/denomsum;
+	p->pcloud=(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      } else {
 	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
-	    +(pr21gf*pr3a1gf*pa1gf*pdtgf*pfree)
-	    +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
+	  	  +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)
+	          +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)/denomsum;
-	p->pfree = (pr21gf*pr3a1gf*pa1gf*pdtgf*pfree)/denomsum;
+	p->pfree =(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)/denomsum;
+	p->pcloud=(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      }
+    } else if (cpa.lmask == FMSNOWLAND) { /*Land: use classes snow/land/cloud*/
+      if (cpa.daytime3b) {
+	denomsum = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)
+	          +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
+	    	  +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
+	p->pice = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)/denomsum;
+	p->pfree =(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)/denomsum;
+	p->pcloud=(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      } else {
+	denomsum = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)
+	          +(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
+	          +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
+	p->pice = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)/denomsum;
+	p->pfree =(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)/denomsum;
+	p->pcloud=(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      }
+    } else { /*Coast: use classes ice/land/cloud/water*/
+      if (cpa.daytime3b) {
+	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
+	  +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
+	  +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)
+	  +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
+	p->pice = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
+	p->pfree =((pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
+		   +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater))/denomsum;
+	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      } else {
+	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
+	  +(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
+	  +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)
+	  +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
+	p->pice = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)/denomsum;
+	p->pfree =((pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
+		   +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater))/denomsum;
 	p->pcloud = (pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
+      }
     }
 
     /*

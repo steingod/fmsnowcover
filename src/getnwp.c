@@ -42,7 +42,7 @@
  * wildcards and number of wildcards to use in addition to the usual...
  *
  * CVS_ID:
- * $Id: getnwp.c,v 1.3 2009-03-30 13:42:53 steingod Exp $
+ * $Id: getnwp.c,v 1.4 2009-09-10 14:16:21 mariak Exp $
  */
 
 #include <getnwp.h>
@@ -111,7 +111,7 @@ int nwpice_read(char *fpath, char **filenames, int nrf, int nruns, fmtime
     } else if (strstr(fpath,"/starc")) {
 	len1 =  strlen(fpath)+1+11+strlen(filenames[0])+6+1+9;
     } else {
-	fmerrmsg(where,"Could determine source for NWP data.");
+	fmerrmsg(where,"Could not determine source for NWP data.");
 	return(FM_IO_ERR);
     }
     if (fmalloc_byte_2d_contiguous(&fnsf,nruns,len1)){

@@ -17,7 +17,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnowfuncs.c,v 1.1 2009-04-23 10:43:43 steingod Exp $
+ * $Id: fmaccusnowfuncs.c,v 1.2 2010-07-02 15:06:02 mariak Exp $
  */ 
 
 #include <fmaccusnow.h>
@@ -33,14 +33,15 @@
  */
 
 int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs, 
-                          unsigned char *class, unsigned char *probclass, 
-			  float *probice, float *probclear, float cloudlim)
+			unsigned char *catclass, unsigned char *probclass, 
+			float *probice, float *probclear, float cloudlim,
+			int *numCloudfree)
 {
 
   char *errmsg="\n\tERROR(average_merge_files): ";
   int i, elem, pn, status, ret, size_n;
   unsigned int xc, yc;
-  int *numPix, *numIce, *numLand, *numCloud, *numCloudfree, *numUndef;
+  int *numPix, *numIce, *numLand, *numCloud, *numUndef;
   float Pice_val, Pclear_val, Pcloud_val, probsum, sumCloudfree;
   float *sumIce, *sumClear;
   osihdf ice_h5p;
@@ -51,14 +52,13 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
   sumIce   = (float *) malloc(size_n*sizeof(float));
   sumClear = (float *) malloc(size_n*sizeof(float));
   numIce   = (int *) malloc(size_n*sizeof(int));
-  numCloudfree = (int *) malloc(size_n*sizeof(int*));
   numPix   = (int *) malloc(size_n*sizeof(int));
   numLand  = (int *) malloc(size_n*sizeof(int));
   numCloud = (int *) malloc(size_n*sizeof(int));
   numUndef = (int *) malloc(size_n*sizeof(int));  
 
   if (!sumIce || !sumClear || !numIce || !numPix || !numLand
-      || !numCloud || !numUndef || !numCloudfree) {
+      || !numCloud || !numUndef){
      fprintf(stderr," Could not allocate memory for data field\n");
      return(3);
   }
@@ -172,7 +172,6 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
 
 
   /* Loop through grid and calculate average probabilities */
-
   for (elem=0;elem<size_n;elem++) {
 
     /* First control that things add up*/
@@ -188,25 +187,25 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
       probice[elem] = sumIce[elem]/numCloudfree[elem];
       probclear[elem] = sumClear[elem]/numCloudfree[elem];
       if (probice[elem] > probclear[elem]) {  /*snow/ice*/
-	class[elem] = C_ICE;
+	catclass[elem] = C_ICE;
       }
       else if (probice[elem] < probclear[elem]) { /*clear*/
-	class[elem] = C_CLEAR;
+	catclass[elem] = C_CLEAR;
       } 
       else { /* Ice and clear equally likely */
-	class[elem] = C_UNCLASS;
+	catclass[elem] = C_UNCLASS;
       }
     }
     /* Alternatively the pixel is clouded or undef. for all sat.passes */
     else if (numCloudfree[elem] == 0 && numCloud[elem] > 0) { 
-      class[elem] = C_CLOUDED;
+      catclass[elem] = C_CLOUDED;
     }
     else { /* numPix == numUndef, No sat. data */
-      if (numPix[elem] != numUndef[elem]) { /*unødv. kontroll*/
+      if (numPix[elem] != numUndef[elem]) { /*unnecessary check*/
 	fprintf(stderr,"Something wrong during pixel classification\n");
 	return(8);
       }
-      class[elem] = C_UNCLASS;
+      catclass[elem] = C_UNCLASS;
     }
     
 
@@ -267,7 +266,6 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
   free(numLand);
   free(numCloud);
   free(numUndef);
-  free(numCloudfree);
 
   return(0);
 }

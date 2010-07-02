@@ -13,7 +13,7 @@
  * fmsnowcover package.
  *
  * CVS_ID:
- * $Id: fmaccusnow.h,v 1.2 2009-05-05 11:14:36 steingod Exp $
+ * $Id: fmaccusnow.h,v 1.3 2010-07-02 15:06:49 mariak Exp $
  */
 
 #ifndef _FMACCUSNOW_H
@@ -37,7 +37,8 @@
 #define TOTAREAS 8
 #define MAXSAT 20
 #define MAXAREA 20
-#define DATESTRINGLENGTH 50 /* Holdes even ISO strings */
+#define DATESTRINGLENGTH 50 /* Holds even ISO strings */
+
 
 /* 
  * File name specific parameters 
@@ -68,13 +69,13 @@
 #define PROB_CLEAR_DESC "P(clear)"
 #define C_ICE     1
 #define C_CLEAR   2
-#define C_CLOUDED 4
-#define C_UNCLASS 3
+#define C_CLOUDED 3
+#define C_UNCLASS 4
 #define C_UNDEF   5
 #define PROB_MISVAL -199
 
 #define PROBLIMITS 20
-#define CLASSLIMITS 5
+#define CATLIMITS 5
 #define CLASSLIMITSSTR 66
 #define DUMMYSTR 100
 #define FILELEN 256 /* standard length of filenames including path */
@@ -84,8 +85,9 @@
  * Function prototypes.
  */
 int average_merge_files(char **infSST, int nrInput, fmucsref safucs, 
-                          unsigned char *class, unsigned char *probclass,
-			  float *probice, float *probclear, float cloudlim);
+			unsigned char *class, unsigned char *probclass,
+			float *probice, float *probclear, float cloudlim,
+			int *numCloudfree);
 
 int check_headers(int nrInput, PRODhead hrSSThead[]);
 
@@ -95,8 +97,7 @@ int find_sat_area_index(char **satlist, int numsat, char *filename);
 
 int read_sat_area_list(char *listfile, char **elemlist);
 
-int store_snow(char *filename, PRODhead ph, unsigned char *im, 
-			 int numcat, char *desc[], char *satstring);
+int store_snow(char *fname,unsigned char *im,fmio_mihead clinfo,int image_type);
 
 void usage();
 

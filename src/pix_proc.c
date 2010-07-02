@@ -57,17 +57,19 @@
  * allow statcoeffstr being passed from avhrrice_pap.c down to probest.c
  * Mari Anne Killie, METNO/FOU, 13.10.2008: satimg removed +
  * introducing fm_ch3brefl.
+ * MAK, METNO/FOU, 22.09.2009: (temp.) adding "cat" to categorize each
+ * pixel in class with highest probability.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.8 2009-05-11 13:30:39 mariak Exp $
+ * $Id: pix_proc.c,v 1.9 2010-07-02 15:09:22 mariak Exp $
  */ 
 
 #include <fmsnowcover.h>
 /*#undef FMSNOWCOVER_HAVE_LIBUSENWP*/
 
 int process_pixels4ice(fmio_img img, unsigned char *cmask[], 
-    unsigned char *lmask, nwpice nwp, datafield *probs, 
-    unsigned char *class, short algo, statcoeffstr cof) {
+       unsigned char *lmask, nwpice nwp, datafield *probs, 
+       unsigned char *class, unsigned char *cat, short algo, statcoeffstr cof) {
     
     char *where="process_pixels4ice";
     char what[FMSNOWCOVER_MSGLENGTH];
@@ -136,6 +138,13 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	     */
 	    i=fmivec(xc, yc, img.iw);
 	    class[i] = 0;
+	    cat[i] = 5; /*undef.*/
+
+	    /*
+	     * Quick exit when test processing large tile (not
+	     * interested in all of the tile)
+	     */
+	    /*if (i > 10000000) {return(10);}*/
 
 	    /*
 	     * Better safe than sorry...
@@ -152,6 +161,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    ucspos = fmind2ucs(ucs0, cart);
 	    geop = fmucs2geo(ucspos,MI);
 	    zsun = fmsolarzenith(timeidsec, geop);
+
 
 	    if (zsun < FMSNOWSUNZEN) {
 		cpar.algo = 2;
@@ -239,6 +249,10 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	      cpar.A3b = fm_ch3brefl(cpar.T3,cpar.T4,cpar.soz,img.sa,doy);
 	    }
 	    
+
+	    if (i == 0) {
+	     fmlogmsg(where,"Using probest to estimate pixel probabilities...");
+	    } 
 	    if (probest(cpar, &p, cof)) {
 		sprintf(what,
 			"Something went wrong in pixel processing of %d",i);
@@ -296,7 +310,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 		-7.423763*(cpar.A3/cpar.A1);
 	    p = exp(x)/(1+exp(x));
 	    */
-
+	    
 	    if (p.pice < 0.0) {
 		class[i] = 0;
 	    } else if (p.pice < 0.05) {
@@ -342,6 +356,17 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    } else {
 		class[i] = 0;
 	    }
+
+	    if ((p.pice > p.pfree) && (p.pice > p.pcloud)) {
+	      cat[i] = ICE;
+	    } else if ((p.pfree > p.pice) && (p.pfree > p.pcloud)) {
+	      cat[i] = CLEAR;
+	    } else if ((p.pcloud > p.pice) && (p.pcloud > p.pfree)){
+	      cat[i] = CLOUD;
+	    } else { /*some probs. are equal*/
+	      cat[i] = UNCL;
+	    }
+
 	}
     }
     fmlogmsg(where,"Now returning to main...");

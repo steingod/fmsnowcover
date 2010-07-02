@@ -42,7 +42,7 @@
  * Mari Anne Killie, METNO/FOU, 08.05.2009: snow added, d34 removed.
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.11 2009-09-09 16:09:30 mariak Exp $
+ * $Id: fmsnowcover.h,v 1.12 2010-07-02 15:07:44 mariak Exp $
  */ 
 
 #include <stdio.h>
@@ -60,6 +60,7 @@
 #define MAXIMGSIZE 1440000
 #define CLASSLIMITS 20	    /* Maximum number of classes in image */
 #define CLASSLIMITSSTR 66   /* Length of string classlimit */
+#define DUMMYSTR 100
 #define NWP_NOFIELDS 5
 #define FMSNOWCOVER_OLEVELS 3 /* Number of output levels */
 #define FMSNOWCOVERMISVAL_NOCOV -991 
@@ -69,6 +70,13 @@
 #define FMSNOWSUNZEN 85.
 #define FMSNOWSEA 0 
 #define FMSNOWLAND 255
+/*The following 5 can be removed:*/
+#define ICE 1
+#define CLEAR 2
+#define CLOUD 3
+#define UNCL 4
+#define UNDEF 5
+#define CATLIMITS 5
 
 /*
  * Some useful data constants to use in the software.
@@ -183,22 +191,18 @@ int decode_cfg(char cfgfile[],cfgstruct *cfg);
 
 int process_pixels4ice(fmio_img img, 
     unsigned char *cmask[], unsigned char *lmask, nwpice nwp, 
-    datafield *probs, unsigned char *class, short algo, statcoeffstr cof);
+    datafield *probs, unsigned char *class, unsigned char *cat,
+    short algo, statcoeffstr cof);
 
 void moment(float data[], int n, float *ave, float *adev, float *sdev,
     float *var, float *skew, float *curt);
 
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof);
-/*
-int probest_hanneh(pinpstr cpa, probstr *p);
-int probest_hanneh(struct miclpa cpa, float *picegobs, float *pwgobs, 
-	     float *pcgobs);
-*/
-
 double gammapdf(double alpha, double beta, double x);
 double normalpdf(double mean, double sdev, double x);
 
-void store_mitiff_result(char *outfile, unsigned char *icep, fmio_mihead img);
+/*void store_mitiff_result(char *outfile,unsigned char *icep,fmio_mihead img);*/
+/*void store_mitiff_cat(char *outfile, unsigned char *cat, fmio_mihead img);*/
 int rdstatcoeffs(char *coeffsfile, statcoeffstr *coeffs);
 double findprob(featstr feat, double x, char *whereami);
 int locstatcoeffs (dummystr dummies, statcoeffstr *cof);

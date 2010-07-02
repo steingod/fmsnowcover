@@ -47,7 +47,7 @@
  * 3 over water and 4 over coast.
  *
  * CVS_ID:
- * $Id: probest.c,v 1.6 2009-09-09 16:06:42 mariak Exp $
+ * $Id: probest.c,v 1.7 2010-07-02 15:09:59 mariak Exp $
  */
 
 #include <stdio.h>
@@ -98,13 +98,13 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     
     /*Clouds*/
     pa1gc = findprob( cof.cloud.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"cloud a1");
-    pr21gc = findprob( cof.cloud.r21, r21,"cloud r21" );
+    pr21gc = findprob( cof.cloud.r21, r21, "cloud r21" );
     if (cpa.daytime3b) {
 	pr3b1gc = findprob( cof.cloud.r3b1, r3b1, "cloud r3b1" );
     } else {
 	pr3a1gc = findprob( cof.cloud.r3a1, r3a1, "cloud r3a1" );
     }
-    pdtgc = findprob( cof.cloud.dt, cpa.tdiff,"cloud dt");
+    pdtgc = findprob( cof.cloud.dt, cpa.tdiff, "cloud dt");
 
     /*Land and water*/
     pa1gl=findprob( cof.land.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"land a1");
@@ -176,25 +176,55 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	p->pcloud=(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
       }
     } else { /*Coast: use classes ice/land/cloud/water*/
-      if (cpa.daytime3b) {
+ 
+     if (cpa.daytime3b) {
 	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
+	  /*denomsum = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)*/
 	  +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
 	  +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)
 	  +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
+	  /*p->pice = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)/denomsum;*/
 	p->pfree =((pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
 		   +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater))/denomsum;
 	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
       } else {
 	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
+	  /*denomsum = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)*/
 	  +(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
 	  +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)
 	  +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
 	p->pice = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)/denomsum;
+	  /*p->pice = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)/denomsum;*/
 	p->pfree =((pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
 		   +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater))/denomsum;
 	p->pcloud = (pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
-      }
+     }
+
+     /*  if (cpa.daytime3b) { /\*tester igjen 5 klasser i kystsoner*\/ */
+/*        denomsum = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow) */
+/* 	  +(pr21gi*pr3b1gi*pa1gi*pdtgi*pice) */
+/* 	  +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland) */
+/* 	  +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater) */
+/* 	  +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud); */
+/*         p->pice =((pr21gi*pr3b1gi*pa1gi*pdtgi*pice) */
+/* 		  +(pr21gs*pr3b1gs*pa1gs*pdtgs*psnow))/denomsum; */
+/* 	p->pfree =((pr21gl*pr3b1gl*pa1gl*pdtgl*pland) */
+/* 		   +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater))/denomsum; */
+/* 	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum; */
+/*       } else { */
+/* 	denomsum = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow) */
+/* 	  +(pr21gi*pr3a1gi*pa1gi*pdtgi*pice) */
+/* 	  +(pr21gl*pr3a1gl*pa1gl*pdtgl*pland) */
+/* 	  +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater) */
+/* 	  +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud); */
+/* 	p->pice =((pr21gi*pr3a1gi*pa1gi*pdtgi*pice) */
+/* 		  +(pr21gs*pr3a1gs*pa1gs*pdtgs*psnow))/denomsum; */
+/* 	p->pfree =((pr21gl*pr3a1gl*pa1gl*pdtgl*pland) */
+/* 		   +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater))/denomsum; */
+/* 	p->pcloud = (pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum; */
+/*      } */
+
     }
 
     /*

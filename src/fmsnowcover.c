@@ -47,13 +47,16 @@
  * setup.
  * Mari Anne Killie, METNO/FOU, 08.05.2009: some modifications for
  * landmask + surface. d34 removed.
+ * Mari Anne Killie, METNO/FOU, 02.07.2010: replacing
+ * store_mitiff_result with store_snow.
  *
  * CVS_ID:
- * $Id: fmsnowcover.c,v 1.11 2009-05-11 13:29:50 mariak Exp $
+ * $Id: fmsnowcover.c,v 1.12 2010-07-02 15:07:18 mariak Exp $
  */
  
 #include <fmsnowcover.h>
 #include <unistd.h>
+#include <fmaccusnow.h>
 /*#undef FMSNOWCOVER_HAVE_LIBUSENWP*/
 
 int main(int argc, char *argv[]) {
@@ -67,10 +70,10 @@ int main(int argc, char *argv[]) {
     unsigned int size;
     char fname[FILENAME],datestr[25];
     char pname[4];
-    char *lmaskf, *opfn1, *opfn2;
+    char *lmaskf, *opfn1, *opfn2, *opfn3;
     char *infile, *cfgfile, *coffile;
     char *fnwc[3]={"h12sf","h12pl","h12ml"};
-    unsigned char *classed;
+    unsigned char *classed, *cat;
     cfgstruct cfg;
     FILE *lmask_located; /*Can be removed later*/
     fmio_mihead iinfo = {
@@ -96,7 +99,8 @@ int main(int argc, char *argv[]) {
     float cloudfree;
 
     statcoeffstr coeffs = {{{0}}};
-    
+    int image_type;
+
     /*
      * Interprete commandline arguments.
      */
@@ -166,6 +170,10 @@ int main(int argc, char *argv[]) {
     } else if (strstr(fname,"gr") != NULL) {
 	sprintf(pname,"%s","gr");
 	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dngr");
+    } else if (strstr(fname,"NoA") != NULL) { /*adding new tile*/
+        sprintf(pname,"%s","noa");
+	sprintf(lmaskf,"%s/physiography.%s.hdf5",cfg.lmpath,"dnnoa");
+
     } else {
 	fprintf(stderr,"%s\n"," Trouble processing:");
 	fprintf(stderr,"%s\n",infile);
@@ -212,7 +220,7 @@ int main(int argc, char *argv[]) {
     iinfo.By = img.By;
     size = img.iw*img.ih;
     printf(" Image cover: %.2f\n",img.cover);
-    if (img.cover < 40.) {
+    if ((img.cover < 40. && (strstr(fname,"NoA") == NULL))) {
 	fmlogmsg(where,
 	"The percentage coverage (%.0f%) of this scene is too small for further processing.",img.cover);
 	exit(FM_OK);
@@ -319,21 +327,34 @@ int main(int argc, char *argv[]) {
 	fmerrmsg(where,what);
 	exit(FM_MEMALL_ERR);
     }
+    /*MAK added 22/9-09*/
+    cat = (unsigned char *) malloc(size*sizeof(char));
+    if (!cat) {
+	sprintf(what,
+	"Could not allocate memory for cat array while processing : %s\n",
+		infile);
+	fmerrmsg(where,what);
+	exit(FM_MEMALL_ERR);
+    }
+
     fmlogmsg(where,"Estimating ice probability");
 
     if (lm.d == NULL) {
       status = process_pixels4ice(img, NULL, NULL, nwp,
-				ice.d, classed, 2, coeffs);
+				  ice.d, classed, cat, 2, coeffs);
     } else {
       status = process_pixels4ice(img, NULL, (unsigned char *)(lm.d->data), 
-				  nwp, ice.d, classed, 2, coeffs);
+				  nwp, ice.d, classed, cat, 2, coeffs);
     }
     
-    if (status) {
+    if ((status) && (status != 10)) {
 	sprintf(what,"Something failed while processing pixels of %s",infile);
 	fmerrmsg(where,what);
+    } else if (status == 10) {
+        fmlogmsg(where,
+	   "Finished estimating ice probability for temp. reduced tile area");
     } else {
-	fmlogmsg(where,"Finished estimating ice probability");
+        fmlogmsg(where,"Finished estimating ice probability");
     }
     
     /*
@@ -343,6 +364,9 @@ int main(int argc, char *argv[]) {
      */
     fmlogmsg(where,"Cleaning memory");
     fm_clear_fmio_img(&img);
+    if (lm.d != NULL) {
+      free_osihdf(&lm);
+    }
 
     /*
      * Write results to files, HDF5 file for internal use and TIFF 6.0 
@@ -385,9 +409,24 @@ int main(int argc, char *argv[]) {
 	img.yy, img.mm, img.dd, img.ho, img.mi);
     sprintf(what,"Creating output file: %s", opfn2);
     fmlogmsg(where,what);
-    store_mitiff_result(opfn2,classed,clinfo);
+    image_type = 0;
+    store_snow(opfn2,classed,clinfo,image_type);
 
-   /*
+
+    /*Can be helpful when trying to improve the product*/
+    /*Must make some changes in subroutines as well. */
+    opfn3 = (char *) malloc(FILELEN+5);
+    if (!opfn3) exit(FM_IO_ERR);
+    sprintf(opfn3,"%s/fmsnow_cat_%s_%4d%02d%02d%02d%02d.mitiff", 
+	cfg.productpath,pname,
+	img.yy, img.mm, img.dd, img.ho, img.mi);
+    sprintf(what,"Creating output file: %s", opfn3);
+    fmlogmsg(where,what);
+    image_type = 1;
+    store_snow(opfn3,cat,clinfo,image_type);
+
+
+    /*
      * Add information on processed scenes, time and area
      * identifications as well as valid image data coverage within the
      * tile and estimated cloud free coverage of the scene.
@@ -403,6 +442,12 @@ int main(int argc, char *argv[]) {
     fprintf(stdout," ================================================\n");
     free(opfn1);
     free(opfn2);
+    free(opfn3);
+
+    /*Må vel med?*/
+    free(classed);
+    free(cat);
+    free_osihdf(&ice);
 
     exit(FM_OK);
 }

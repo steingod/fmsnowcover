@@ -31,9 +31,11 @@
  * Mari Anne Killie, METNO/FOU, 08.01.2009: Original software created by
  * Steinar Eastwoord, modified for use within the fmsnowcover package.
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
+ * Mari Anne Killie, METNO/FOU, 02.07.2010: Replacing
+ * store_mitiff_.. with store_snow.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.8 2009-05-07 15:29:31 steingod Exp $
+ * $Id: fmaccusnow.c,v 1.9 2010-07-02 15:07:18 mariak Exp $
  */ 
 
  
@@ -67,40 +69,22 @@ int main(int argc, char *argv[]) {
     osihdf *inputhdf;
     char *prod_desc[FMACCUSNOWPROD_LEVELS] = {"class","P(snow)","P(clear)"};
     osi_dtype prod_ft[FMACCUSNOWPROD_LEVELS] = {CLASS_DT,PROB_DT,PROB_DT};
-    unsigned char *class, *snowclass;
+    unsigned char *catclass, *snowclass;
     float *probsnow, *probclear;
     int sorted_index, index_offset;
-    int *num_files_area, *num_files_area_counter;
-    char *default_arealist[TOTAREAS] = {"ns","nr","at","gr","gn","gf","gm","gs"};
-    char *class_desc[CLASSLIMITS] = {
-	"1: Ice/snow",
-	"2: Clear",
-	"3: Unclass",
-	"4: Clouded",
-	"5: Undef"
-    };
+    int *num_files_area, *num_files_area_counter, *numCloudfree;
+    char *default_arealist[TOTAREAS] ={"ns","nr","at","gr","gn","gf","gm","gs"};
     char checkstr[7];
-    char *snow_desc[PROBLIMITS] = {"[0.00 -  0.05>", "[0.05 -  0.10>", 
-	"[0.10 -  0.15>", 
-	"[0.15 -  0.20>", 
-	"[0.20 -  0.25>", 
-	"[0.25 -  0.30>", 
-	"[0.30 -  0.35>", 
-	"[0.35 -  0.40>", 
-	"[0.40 -  0.45>", 
-	"[0.45 -  0.50>", 
-	"[0.50 -  0.55>", 
-	"[0.55 -  0.60>", 
-	"[0.60 -  0.65>", 
-	"[0.65 -  0.70>", 
-	"[0.70 -  0.75>", 
-	"[0.75 -  0.80>", 
-	"[0.80 -  0.85>", 
-	"[0.85 -  0.90>", 
-	"[0.90 -  0.95>", 
-	"[0.95 -  1.00]"
+    int image_type; /*0: probability for snow, 1: classed image/category
+		     *2: updated with sar   */
+    fmio_mihead clinfo = {
+	"Not known",
+	00, 00, 00, 00, 0000, -9, 
+	{0, 0, 0, 0, 0, 0, 0, 0}, 
+	0, 0, 0, 0., 0., -999., -999.
     };
-
+    int include_sar = 0;
+  
     if (!(argc >= 9 && argc <= 18)) usage();
 
     fprintf(stdout,"\n");
@@ -244,7 +228,8 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout,"\tProcess only satellite: %s \n", procsat);
     }
     if (lflg) {
-	fprintf(stdout,"\tUsing list of satellites from file: %s \n", satlistfile);
+	fprintf(stdout,"\tUsing list of satellites from file: %s \n", 
+		satlistfile);
     }
     if (!cflg) {
 	cloudlim = DEFAULTCLOUD;
@@ -254,7 +239,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout,"\tUsing area tiles from file: %s \n", arealistfile);
     }
 
-    satlist = (char **) malloc(MAXSAT*sizeof(char *)); /*flytte til etter if lfgl?*/
+    satlist = (char **) malloc(MAXSAT*sizeof(char *)); 
     if (! satlist) {
 	fmerrmsg(where,"Could not allocate satlist");
 	exit(FM_MEMALL_ERR);
@@ -267,10 +252,11 @@ int main(int argc, char *argv[]) {
     if (lflg) {
 	numsat = read_sat_area_list(satlistfile,satlist);
 	if (numsat == 0) {
-	    fprintf(stderr,"\n\tFound NO satellites on file %s\n\texiting..\n\n",
-		    satlistfile);
+	    fprintf(stderr,
+	    "\n\tFound NO satellites on file %s\n\texiting..\n\n",satlistfile);
 	} else if (numsat < 0) {
-	    fmerrmsg(where,"Could not read %s, processing all passages.",satlistfile);
+	    fmerrmsg(where,"Could not read %s, processing all passages.",
+		     satlistfile);
 	    lflg = 0;
 	} else {
 	    fprintf(stdout,"\n\tProcessing satellites (%d): \n\t  ",numsat);
@@ -316,7 +302,8 @@ int main(int argc, char *argv[]) {
 	    exit(FM_IO_ERR);
 	}
 	else if (numarea < 0) {
-	    fmerrmsg(where,"Could not read %s, processing all area tiles.", arealistfile);
+	    fmerrmsg(where,"Could not read %s, processing all area tiles.", 
+		     arealistfile);
 	    mflg = 0;
 	}
 	else {
@@ -330,7 +317,7 @@ int main(int argc, char *argv[]) {
 	numarea = TOTAREAS;
 	arealist = default_arealist;
 	fprintf(stdout,
-		"\tProcessing files for tiles on default tilelist (%d):\n\t ",numarea);
+	"\tProcessing files for tiles on default tilelist (%d):\n\t ",numarea);
 	for (i=0;i<numarea;i++) {
 	    printf("%s ",arealist[i]);
 	}
@@ -368,7 +355,8 @@ int main(int argc, char *argv[]) {
     numf = 0;
     while ((dirl_avhrrice = readdir(dirp_avhrrice)) != NULL) {
 	if (strncmp(dirl_avhrrice->d_name,BASEFNAME,strlen(BASEFNAME)) == 0 &&
-		strstr(dirl_avhrrice->d_name,".hdf") != NULL && strlen(dirl_avhrrice->d_name) >= MINLENFNAME) {
+	    strstr(dirl_avhrrice->d_name,".hdf") != NULL && 
+	    strlen(dirl_avhrrice->d_name) >= MINLENFNAME) {
 	    sret = strncpy(datestr,&dirl_avhrrice->d_name[10],12);
 	    datestr[12] = '\0';
 	    sprintf(datestr_ymdhms,"%s00",datestr);
@@ -392,8 +380,10 @@ int main(int argc, char *argv[]) {
     }
     i = 0;
 
+
+
     /*
-     * Loop through files in input directory.
+     * Loop through files
      */
     while ((dirl_avhrrice = readdir(dirp_avhrrice)) != NULL) {
 
@@ -429,7 +419,8 @@ int main(int argc, char *argv[]) {
 	    ret = read_hdf5_product(checkfile,&checkfileheader,1);
 	    free(checkfile);
 	    if (ret != 0) {
-		fmerrmsg(where,"Could not open %s, skipping file",dirl_avhrrice->d_name);
+	      fmerrmsg(where,"Could not open %s, skipping file",
+		       dirl_avhrrice->d_name);
 		free_osihdf(&checkfileheader);
 		continue;
 	    }
@@ -482,7 +473,8 @@ int main(int argc, char *argv[]) {
 		fmerrmsg(where,"Could not allocate infile_sorted[%d]", i);
 		exit(FM_MEMALL_ERR);
 	    }
-	    sprintf(infile_avhrrice[i],"%s/%s",dir_avhrrice,dirl_avhrrice->d_name);
+	    sprintf(infile_avhrrice[i],"%s/%s",dir_avhrrice,
+		    dirl_avhrrice->d_name);
 	    i ++;
 	    num_files_area[ind]++;
 	}
@@ -496,6 +488,10 @@ int main(int argc, char *argv[]) {
     }
 
     fmlogmsg(where,"Found a number of files to integrate over. %d files fulfilled the time constraints, %d files fulfilled the satid constraints.", numf, nrInput);
+
+
+ 
+
     for (i=0;i<nrInput;i++) {
 	fprintf(stdout,"\t%2d %s\n",i,infile_avhrrice[i]);
     }
@@ -522,6 +518,7 @@ int main(int argc, char *argv[]) {
 	}
     }
 
+
     /*
      * Check the time to be associated with the integrated product (i.e.
      * the time of the integration.
@@ -533,16 +530,12 @@ int main(int argc, char *argv[]) {
 	exit(FM_IO_ERR);
     }
 
-    /*Dette kan hentes fra første fil. Tar utgangspunkt i SAF-tilene. Om
-      data fra andre sensorer skal innlemmes seinere får de heller
-      tilpasse seg AVHRR.*/
-    /*kan dette som følger herfra settes i loop for flere tiler?*/
-
+    
     for (tile=0;tile<numarea;tile++){
 
 	if (num_files_area[tile]==0) {
-	    fprintf(stdout,"\t No input files for tile %s, continuing on list\n",
-		    arealist[tile]);
+	    fprintf(stdout,
+       "\t No input files for tile %s, continuing on list\n",arealist[tile]);
 	    continue;
 	}
 
@@ -587,7 +580,7 @@ int main(int argc, char *argv[]) {
 	    init_osihdf(&inputhdf[f]);
 	    ret=read_hdf5_product(infile_currenttile[f],&inputhdf[f], 1);
 	    if (ret != 0) {
-		fmerrmsg(where,"Could not read header of %s",infile_currenttile[f]);
+	fmerrmsg(where,"Could not read header of %s",infile_currenttile[f]);
 	    }
 	    if (inputhdf[f].h.iw != inputhdf[0].h.iw ||
 		    inputhdf[f].h.ih != inputhdf[0].h.ih ||
@@ -595,7 +588,8 @@ int main(int argc, char *argv[]) {
 		    inputhdf[f].h.Ay != inputhdf[0].h.Ay ||
 		    inputhdf[f].h.Bx != inputhdf[0].h.Bx ||
 		    inputhdf[f].h.By != inputhdf[0].h.By ) {
-		fmerrmsg(where,"Input files for tile %s, are from different tiles.",arealist[tile]);
+	    fmerrmsg(where,"Input files for tile %s, are from different tiles.",
+		     arealist[tile]);
 		exit(FM_IO_ERR);
 	    }
 	}
@@ -624,37 +618,37 @@ int main(int argc, char *argv[]) {
 	refucs.iw = snowprod.h.iw;
 	refucs.ih = snowprod.h.ih;
 
-	class = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
-	if (! class) {
-	    fmerrmsg(where,"Could not allocate class");
-	    exit(FM_MEMALL_ERR);
-	}
-	snowclass = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
-	if (! snowclass) {
-	    fmerrmsg(where,"Could not allocate snowclass");
-	    exit(FM_MEMALL_ERR);
-	}
-	probsnow = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
-	if (! probsnow) {
-	    fmerrmsg(where,"Could not allocate probsnow");
-	    exit(FM_MEMALL_ERR);
-	}
-	probclear = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
-	if (! probclear) {
-	    fmerrmsg(where,"Could not allocate probclear");
-	    exit(FM_MEMALL_ERR);
-	}
+	sprintf(clinfo.satellite,"%s",satstring);
+	clinfo.hour = snowprod.h.hour;
+	clinfo.minute = snowprod.h.minute;
+	clinfo.day = snowprod.h.day;
+	clinfo.month = snowprod.h.month;
+	clinfo.year = snowprod.h.year;
+	clinfo.zsize = 1;
+	clinfo.xsize = snowprod.h.iw;
+	clinfo.ysize = snowprod.h.ih;
+	clinfo.Ax = snowprod.h.Ax;
+	clinfo.Ay = snowprod.h.Ay;
+	clinfo.Bx = snowprod.h.Bx;
+	clinfo.By = snowprod.h.By;
 
-	if (!class || !snowclass || !probsnow || !probclear) {
-	    fmerrmsg(where,"Could not allocate memory for class, snowclass, probsnow or probclear");
+	catclass = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
+	snowclass = (unsigned char *) malloc(refucs.iw*refucs.ih*sizeof(char));
+	probsnow = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
+	probclear = (float *) malloc(refucs.iw*refucs.ih*sizeof(float));
+	numCloudfree = (int *) malloc(refucs.iw*refucs.ih*sizeof(int));
+
+       if (!catclass || !snowclass || !probsnow || !probclear || !numCloudfree){
+	    fmerrmsg(where,"Could not allocate memory");
 	    exit(FM_MEMALL_ERR);
 	}
 
 	for (i=0;i<refucs.iw*refucs.ih;i++) {
-	    class[i]    = C_UNDEF; 
+	    catclass[i]  = C_UNDEF; 
 	    snowclass[i] = 0;
 	    probsnow[i]  = PROB_MISVAL;
-	    probclear[i]= PROB_MISVAL;
+	    probclear[i] = PROB_MISVAL;
+	    numCloudfree[i]= 0;
 	}
 
 	/*
@@ -664,12 +658,186 @@ int main(int argc, char *argv[]) {
 	    fprintf(stdout,"\n\tNow averaging tile %s (%d files)..\n",
 		    arealist[tile],num_files_area[tile]);
 	    ret = average_merge_files(infile_currenttile, num_files_area[tile],
-		    refucs, class, snowclass, probsnow, probclear, cloudlim); 
+				      refucs, catclass, snowclass, probsnow, 
+				      probclear, cloudlim, numCloudfree); 
 	    if (ret != 0) {
 		fmerrmsg(where,"Could not finish average_merge_files");
 		exit(FM_OTHER_ERR);
 	    }
 	}
+
+	/*
+	 * Include SAR here - first version! Move to separate routine later.
+	 */
+	if (include_sar > 0){
+	  /*Check if sar-file for this tile is available, with date
+	    matching. Also (later!) check that tile info matches
+	    (position, resolution etc.). Then look for high
+	    probability of wet snow in SAR. Pixels with high
+	    probability of wet snow should update the accumulated
+	    product (how!?), first version is to expand the average*/
+
+	  char *sardir = "/home/mariak/fmprojects/fmsnowcover/etc";
+	  char *sarfname = "SAR_polarstereo_200905150500_ns.hdf5";
+	  char *sarfile, *outfWITHSARmitiff_psnow, *outfUpdSARmitiff;
+	  osihdf sar_h5p;
+	  float *probsnow_withsar, sar_wsprob;
+	  float WSPROBLIM = 0.5;
+	  unsigned char *wetsnowclass, *sar_ws_flg;
+	  char *sarsatstring = "AVHRR_SAR"; 
+	  char *sarflgstring = "SARupdated";
+	  sarfile = (char *) malloc(FILELEN);
+	  sprintf(sarfile,"%s/%s",sardir,sarfname);
+	  fmlogmsg(where,"Including SAR");
+
+	  /*Search for SAR files. Check if correct tile*/
+	  /*Run through files on SAR list and check header info for each*/
+
+	  ind = find_sat_area_index(arealist,numarea,sarfile);
+	  if (ind < 0) {
+	    fprintf(stdout,"\tSAR File not in area tile list, skipping %s\n",
+		    sarfile);
+	    continue;
+	  }
+
+	  probsnow_withsar = (float *)malloc(refucs.iw*refucs.ih*sizeof(float));
+	  sar_ws_flg=(unsigned char *)malloc(refucs.iw*refucs.ih*sizeof(char));
+	  wetsnowclass=(unsigned char*)malloc(refucs.iw*refucs.ih*sizeof(char));
+
+	  if (!probsnow_withsar || !sar_ws_flg || !wetsnowclass) {
+	    fmerrmsg(where,"Could not allocate memory");
+	    exit(FM_MEMALL_ERR);
+	  }
+	  
+	  /*Initialize probsnow_withsar, sar_ws_flt, wetsnowclass*/
+	  init_osihdf(&sar_h5p);
+	  ret = read_hdf5_product(sarfile,&sar_h5p,0); /*0:reads everything*/
+	  if (ret) {
+	    fprintf(stderr,
+		    "Trouble encountered when reading SAR file %s.\n", 
+		    sarfile);
+	    fprintf(stderr,"\t Skipping file.\n");
+	  }
+	  else {
+	    fmlogmsg(where,"SAR file read");
+	  /*Later: add checking that tile, proj etc is the same!!*/
+	  
+	  /*loop through pixels, update probability if high prob of wet snow*/
+	  for (i=0;i<refucs.iw*refucs.ih;i++){
+	    probsnow_withsar[i] = probsnow[i];
+	    sar_wsprob =((float *) sar_h5p.d->data)[i];
+	    if (sar_wsprob > WSPROBLIM){
+	      sar_ws_flg[i]=1;/*Keeps track of which pixels SAR has updated*/
+	      probsnow_withsar[i] = probsnow[i]*numCloudfree[i] + sar_wsprob;
+	      probsnow_withsar[i] = probsnow_withsar[i]/(numCloudfree[i]+1);
+	    }
+	    if (probsnow_withsar[i] < 0.0) {
+	      wetsnowclass[i] = 0;
+	    } else if (probsnow_withsar[i] < 0.05) {
+	      wetsnowclass[i] = 1;
+	    } else if (probsnow_withsar[i] < 0.10) {
+	      wetsnowclass[i] = 2;
+	    } else if (probsnow_withsar[i] < 0.15) {
+	      wetsnowclass[i] = 3;
+	    } else if (probsnow_withsar[i] < 0.20) {
+	      wetsnowclass[i] = 4;
+	    } else if (probsnow_withsar[i] < 0.25) {
+	      wetsnowclass[i] = 5;
+	    } else if (probsnow_withsar[i] < 0.30) {
+	      wetsnowclass[i] = 6;
+	    } else if (probsnow_withsar[i] < 0.35) {
+	      wetsnowclass[i] = 7;
+	    } else if (probsnow_withsar[i] < 0.40) {
+	      wetsnowclass[i] = 8;
+	    } else if (probsnow_withsar[i] < 0.45) {
+	      wetsnowclass[i] = 9;
+	    } else if (probsnow_withsar[i] < 0.50) {
+	      wetsnowclass[i] = 10;
+	    } else if (probsnow_withsar[i] < 0.55) {
+	      wetsnowclass[i] = 11;
+	    } else if (probsnow_withsar[i] < 0.60) {
+	      wetsnowclass[i] = 12;
+	    } else if (probsnow_withsar[i] < 0.65) {
+	      wetsnowclass[i] = 13;
+	    } else if (probsnow_withsar[i] < 0.70) {
+	      wetsnowclass[i] = 14;
+	    } else if (probsnow_withsar[i] < 0.75) {
+	      wetsnowclass[i] = 15;
+	    } else if (probsnow_withsar[i] < 0.80) {
+	      wetsnowclass[i] = 16;
+	    } else if (probsnow_withsar[i] < 0.85) {
+	      wetsnowclass[i] = 17;
+	    } else if (probsnow_withsar[i] < 0.90) {
+	      wetsnowclass[i] = 18;
+	    } else if (probsnow_withsar[i] < 0.95) {
+	      wetsnowclass[i] = 19;
+	    } else if (probsnow_withsar[i] <= 1.0) {
+	      wetsnowclass[i] = 20;
+	    } else {
+	      wetsnowclass[i] = 0;
+	    }
+	  }
+  
+	  /* 
+	   * Create MITIFF for SAR-updated, classified ice probability image 
+	   */
+	  image_type = 0;
+	  sprintf(clinfo.satellite,"%s",sarsatstring);
+	  outfWITHSARmitiff_psnow = (char *) malloc(FILELEN+5);
+	  if (!outfWITHSARmitiff_psnow) {
+	    fmerrmsg(where,"Could not allocate memory for SAR mitiff file"); 
+	  } else {
+	    sprintf(outfWITHSARmitiff_psnow,
+		    "%s/%s-%s_%s_%04d%02d%02d%02d-%dhours_%s.mitiff",
+		    path_outf,pref_outf,pref_ps,arealist[tile],
+		    snowprod.h.year,snowprod.h.month,snowprod.h.day,
+		    snowprod.h.hour,period,sarsatstring);
+	    ret = store_snow(outfWITHSARmitiff_psnow, wetsnowclass, clinfo,
+			     image_type);
+	    if (ret != 0)  {
+	      fmerrmsg(where,"Could not create MITIFF file %s", 
+		       outfWITHSARmitiff_psnow);
+	    }
+	    else {
+	      printf("\tAVHRR-SAR product created:\n\t %s\n",
+		     outfWITHSARmitiff_psnow);
+	    }
+	    free(outfWITHSARmitiff_psnow);
+	  }
+	  /*
+	   * For now: create MITIFF that shows which pixels have been
+	   * updated using SAR
+	   */ 
+	  image_type = 2;
+	  sprintf(clinfo.satellite,"%s",sarflgstring);
+ 	  outfUpdSARmitiff = (char *) malloc(FILELEN+5);
+	  if (!outfUpdSARmitiff){
+	    fmerrmsg(where,"Could not allocate memory for SAR mitiff file"); 
+	  } else {
+	    sprintf(outfUpdSARmitiff,
+		    "%s/%s-%s_%s_%04d%02d%02d%02d-%dhours_%s.mitiff",
+		    path_outf,pref_outf,pref_ps,arealist[tile],
+		    snowprod.h.year,snowprod.h.month,snowprod.h.day,
+		    snowprod.h.hour,period,sarflgstring);
+	    ret = store_snow(outfUpdSARmitiff,sar_ws_flg,clinfo,image_type);
+	    if (ret != 0)  {
+	      fmerrmsg(where,"Could not create MITIFF file %s", 
+		       outfUpdSARmitiff);
+	    } else {
+	      printf("\tSAR-influence product created:\n\t %s\n",
+		     outfUpdSARmitiff);
+	    }
+
+	    free(outfUpdSARmitiff);
+	  }
+	  
+	  free_osihdf(&sar_h5p);
+	  free(sar_ws_flg);
+	  free(probsnow_withsar);
+	  free(wetsnowclass);
+	  }
+	} /*End of if (include_sar > 0) */
+	
 
 	/*
 	 * Do some freeing, freeing snowprod is not required as not data
@@ -690,19 +858,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	for (i=0;i<refucs.iw*refucs.ih;i++){
-	    ((int*)snowprod.d[0].data)[i] = class[i];
+	    ((int*)snowprod.d[0].data)[i] = catclass[i];
 	    ((float*)snowprod.d[1].data)[i] = probsnow[i];
 	    ((float*)snowprod.d[2].data)[i] = probclear[i];
 	}
 
-	fprintf(stdout,"\tCreating output files for tile %s:\n",arealist[tile]);
+	fprintf(stdout,"\tAVHRR output files for tile %s:\n",arealist[tile]);
 
 	/* 
 	 * Create the output HDF5 product file 
 	 */
 	outfHDF = (char *) malloc(FILELEN+5);
 	if (!outfHDF) exit(FM_MEMALL_ERR);
-	sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d%02d-%dhours_%s.hdf",path_outf,
+	sprintf(outfHDF,"%s/%s_%s_%04d%02d%02d%02d-%dhours_%s.hdf5",path_outf,
 	    pref_outf,arealist[tile],
 	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
 	    period,satstring);
@@ -712,9 +880,12 @@ int main(int argc, char *argv[]) {
 	    exit(FM_IO_ERR);
 	}    
 
+	
 	/* 
-	 * Create MITIFF for the classified image 
+	 * Create MITIFF for the classified/categorized image 
 	 */
+	image_type = 1;
+	sprintf(clinfo.satellite,"%s",satstring);
 	outfMITIFF_class = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_class) exit(FM_MEMALL_ERR);
 	sprintf(outfMITIFF_class,
@@ -722,16 +893,18 @@ int main(int argc, char *argv[]) {
 	    path_outf,pref_outf,pref_cl,arealist[tile],
 	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
 	    period,satstring);
-	ret = store_snow(outfMITIFF_class, snowprod.h, class, 
-		CLASSLIMITS, class_desc,satstring);
+	printf("clinfo sine komps: %4d %2d %2d\n",clinfo.year,clinfo.month,clinfo.day);
+	ret = store_snow(outfMITIFF_class, catclass, clinfo, image_type);
 	if (ret != 0)  { 
 	    fmerrmsg(where,"Could not create MITIFF file %s", outfMITIFF_class);
 	    exit(FM_IO_ERR);
 	} 
 
 	/* 
-	 * Create MITIFF for classified ice probability image 
+	 * Create MITIFF for ice probability image 
 	 */
+	image_type = 0;
+	sprintf(clinfo.satellite,"%s",satstring);
 	outfMITIFF_psnow = (char *) malloc(FILELEN+5);
 	if (!outfMITIFF_psnow) exit(FM_MEMALL_ERR);
 	sprintf(outfMITIFF_psnow,
@@ -739,8 +912,7 @@ int main(int argc, char *argv[]) {
 	    path_outf,pref_outf,pref_ps,arealist[tile],
 	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
 	    period,satstring);
-	ret = store_snow(outfMITIFF_psnow, snowprod.h, snowclass, 
-		PROBLIMITS, snow_desc,satstring);
+	ret = store_snow(outfMITIFF_psnow, snowclass, clinfo, image_type);
 	if (ret != 0)  {
 	    fmerrmsg(where,"Could not create MITIFF file %s", outfMITIFF_psnow);
 	    exit(FM_IO_ERR);
@@ -756,11 +928,13 @@ int main(int argc, char *argv[]) {
 	free(outfHDF); 
 	free(outfMITIFF_class);
 	free(outfMITIFF_psnow);
-	free(class);
+	free(catclass);
 	free(snowclass);
 	free(probsnow);
 	free(probclear);
-	free_osihdf(&snowprod);
+	free(numCloudfree);
+	free_osihdf(&snowprod);   
+
     } /* end for-loop for tile */
 
     /* 
@@ -789,7 +963,7 @@ int main(int argc, char *argv[]) {
 	free(infile_avhrrice[f]);
 	free(infile_sorted[f]);
     }
-
+ 
     free(infile_avhrrice);
     free(infile_sorted);
 
@@ -803,13 +977,11 @@ int main(int argc, char *argv[]) {
 
 void usage() {
     fprintf(stdout,"\n  SYNTAX: \n");
-    fprintf(stdout,
-	    "  accusnow -s <dir_avhrrice> -d <date_end> -p <period>\n");
+    fprintf(stdout,"  accusnow -s <dir_avhrrice> -d <date_end> -p <period>\n");
     fprintf(stdout,"\t  -a <pref_outf> -o <path_outf> (-t <satellite name>\n");
-    fprintf(stdout,
-	    "\t  -l <satlist> -c <cloudlimit> -m <arealist> -z) \n\n");
-    fprintf(stdout,
-	    "  <dir_avhrrice> : Directory with hdf5 files with avhrr ice data.\n");
+    fprintf(stdout,"\t  -l <satlist> -c <cloudlimit> -m <arealist> -z) \n\n");
+    fprintf(stdout,"  <dir_avhrrice> : Directory with hdf5 files ");
+    fprintf(stdout,"with avhrr ice data.\n");
     fprintf(stdout,"  <date_end>   : End date of merging period\n");
     fprintf(stdout,"  <period>       : Merging period in hours.\n");
     fprintf(stdout,"  <pref_outf>    : Prefix for output filename ");
@@ -821,7 +993,7 @@ void usage() {
 	    "  <satlist>      : File with satellites to use (optional).\n");
     fprintf(stdout,"  <arealist>     : File with tile areas to use.\n");
     fprintf(stdout,
-	    "  <cloudlimit>   : Probability limit for class cloud (optional).\n");
+    "  <cloudlimit>   : Probability limit for class cloud (optional).\n");
     fprintf(stdout,"  -z             : Use threshold on satellite ");
     fprintf(stdout,"zenith angle (not in use!).\n\n");
     exit(FM_OK);

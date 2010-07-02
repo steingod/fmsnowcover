@@ -31,7 +31,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: Makefile.in,v 1.4 2009-04-23 10:43:43 steingod Exp $
+# $Id: Makefile.in,v 1.5 2010-07-02 15:04:20 mariak Exp $
 #
 
 SHELL = /bin/sh
@@ -53,6 +53,7 @@ LIBS = @LIBS@
 
 HEADER_FILES1 = \
   fmsnowcover.h \
+  fmaccusnow.h \
   getnwp.h
 SRC_FILES1 = \
   fmsnowcover.c \
@@ -61,7 +62,7 @@ SRC_FILES1 = \
   normalpdf.c \
   getnwp.c \
   gammapdf.c \
-  store_mitiff_product.c
+  store_snow.c	
 
 HEADER_FILES2 = \
   fmaccusnow.h 

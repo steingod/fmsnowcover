@@ -47,7 +47,7 @@
  * 3 over water and 4 over coast.
  *
  * CVS_ID:
- * $Id: probest.c,v 1.7 2010-07-02 15:09:59 mariak Exp $
+ * $Id: probest.c,v 1.8 2010-11-25 10:17:17 mariak Exp $
  */
 
 #include <stdio.h>
@@ -64,12 +64,9 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     double pa1gs, pr21gs, pr3a1gs, pdtgs, pr3b1gs;
     double pa1gw, pr21gw, pr3a1gw, pdtgw, pr3b1gw;
     double pa1gl, pr21gl, pr3a1gl, pdtgl, pr3b1gl;
-    /*double pigr21, pigr31;*/
     double denomsum;
-    /*double pice=0.3333, pfree=0.3333, pcloud=0.3333;*/
     double pice=0.5, psnow=0.5, pcloud=0.5, pwater=0.5, pland=0.5;
-    /*double pfree=0.5*/
-    /*double picegobs;*/
+    
     
     /*
      * Specify conditional probabilities according to statistical results.

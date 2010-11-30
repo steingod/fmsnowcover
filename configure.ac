@@ -27,13 +27,12 @@
 # NA
 #
 # CVS_ID:
-# $Id: configure.ac,v 1.5 2009-03-30 13:42:52 steingod Exp $
+# $Id: configure.ac,v 1.6 2010-11-30 09:54:43 steingod Exp $
 #
 
 AC_PREREQ(2.59)
 AC_INIT([METNO FMSNOWCOVER], [0.1], [o.godoy@met.no])
 AC_CONFIG_SRCDIR([src/fmsnowcover.h])
-##AC_CONFIG_HEADER([src/fmcol_config.h])
 
 # ########################################################### 
 # Checks for programs.
@@ -163,12 +162,11 @@ FM_REQLIB([hdf5],[H5Fopen])
 
 ##FM_USELIB([hlhdf],[initHlHdf])
 
-FM_USELIB([mi],[mrfelt_],[-lg2c])
+FM_USELIB([mi],[mrfelt_],[-lgfortran])
 
 if test "x$fm_have_libmi" == "xyes"; then
-LIBS="$LIBS -lg2c"
-FM_REQLIB([usenwp],[getfield_],[-lg2c])
-#FM_USELIB([usenwp],[getfield_],[-lg2c])
+LIBS="$LIBS -lgfortran"
+FM_REQLIB([usenwp],[getfield_],[-lgfortran])
 fi
 
 FM_REQLIB([osihdf5],[init_osihdf])

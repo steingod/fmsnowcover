@@ -1,6 +1,10 @@
-########
+########################################################### 
 # Table contains statistical coefficients needed in probest.c
-########
+########################################################### 
+#
+# $Id: statcoeffs_5surfs.txt,v 1.1 2010-12-07 12:47:33 steingod Exp $
+#
+########################################################### 
 # 
 # For four of the signatures (a1, r21, r3ba1, r3b1)
 # the coefficients are based on training data from March to May 2007

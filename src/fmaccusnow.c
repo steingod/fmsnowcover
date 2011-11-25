@@ -35,7 +35,7 @@
  * store_mitiff_.. with store_snow.
  *
  * CVS_ID:
- * $Id: fmaccusnow.c,v 1.9 2010-07-02 15:07:18 mariak Exp $
+ * $Id: fmaccusnow.c,v 1.10 2011-11-25 13:21:49 mariak Exp $
  */ 
 
  
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     int sorted_index, index_offset;
     int *num_files_area, *num_files_area_counter, *numCloudfree;
     char *default_arealist[TOTAREAS] ={"ns","nr","at","gr","gn","gf","gm","gs"};
-    char checkstr[7];
+    char checkstr[10];
     int image_type; /*0: probability for snow, 1: classed image/category
 		     *2: updated with sar   */
     fmio_mihead clinfo = {
@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
 		    sorted_index += num_files_area[j];
 		}
 		sorted_index+=num_files_area_counter[t];
-		sprintf(infile_sorted[sorted_index],infile_avhrrice[i]) ;
+		sprintf(infile_sorted[sorted_index],"%s",infile_avhrrice[i]) ;
 		num_files_area_counter[t]++;
 	    }
 	}
@@ -558,7 +558,7 @@ int main(int argc, char *argv[]) {
 		fmerrmsg(where,"Could not allocate infile_currenttile[%d]", f);
 		exit(FM_MEMALL_ERR);
 	    }
-	    sprintf(infile_currenttile[f],infile_sorted[f+index_offset]);
+	    sprintf(infile_currenttile[f],"%s",infile_sorted[f+index_offset]);
 	}
 
 	inputhdf = (osihdf *) malloc(num_files_area[tile]*sizeof(osihdf));
@@ -893,7 +893,6 @@ int main(int argc, char *argv[]) {
 	    path_outf,pref_outf,pref_cl,arealist[tile],
 	    snowprod.h.year,snowprod.h.month,snowprod.h.day,snowprod.h.hour,
 	    period,satstring);
-	printf("clinfo sine komps: %4d %2d %2d\n",clinfo.year,clinfo.month,clinfo.day);
 	ret = store_snow(outfMITIFF_class, catclass, clinfo, image_type);
 	if (ret != 0)  { 
 	    fmerrmsg(where,"Could not create MITIFF file %s", outfMITIFF_class);

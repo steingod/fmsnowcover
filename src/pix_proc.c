@@ -61,7 +61,7 @@
  * pixel in class with highest probability.
  *
  * CVS_ID:
- * $Id: pix_proc.c,v 1.9 2010-07-02 15:09:22 mariak Exp $
+ * $Id: pix_proc.c,v 1.10 2011-12-05 09:58:47 mariak Exp $
  */ 
 
 #include <fmsnowcover.h>
@@ -84,7 +84,7 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
     fmucspos ucspos;
     fmgeopos geop;
     fmtime timeid;
-    fmsec1970 timeidsec;
+    fmsec1970 timeidsec, tst;
     float zsun;
     int doy;
     fmscale calib; /*will contain gain and intercept values*/
@@ -160,7 +160,9 @@ int process_pixels4ice(fmio_img img, unsigned char *cmask[],
 	    cart.col = xc;
 	    ucspos = fmind2ucs(ucs0, cart);
 	    geop = fmucs2geo(ucspos,MI);
-	    zsun = fmsolarzenith(timeidsec, geop);
+	    /*tst needed to compensate for changes in fmsolarzenith:*/
+	    tst = fmutc2tst(timeidsec, geop.lon);
+	    zsun = fmsolarzenith(tst, geop);
 
 
 	    if (zsun < FMSNOWSUNZEN) {

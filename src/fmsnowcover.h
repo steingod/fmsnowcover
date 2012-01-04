@@ -42,7 +42,7 @@
  * Mari Anne Killie, METNO/FOU, 08.05.2009: snow added, d34 removed.
  *
  * CVS_ID:
- * $Id: fmsnowcover.h,v 1.12 2010-07-02 15:07:44 mariak Exp $
+ * $Id: fmsnowcover.h,v 1.13 2012-01-04 11:37:07 mariak Exp $
  */ 
 
 #include <stdio.h>
@@ -69,7 +69,7 @@
 #define FMSNOWCOVERMISVAL_3A -993
 #define FMSNOWSUNZEN 85.
 #define FMSNOWSEA 0 
-#define FMSNOWLAND 255
+#define FMSNOWLAND 191 /*works better than 255?!*/
 /*The following 5 can be removed:*/
 #define ICE 1
 #define CLEAR 2

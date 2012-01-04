@@ -45,9 +45,16 @@
  * Mari Anne Killie, METNO/FOU, 08.05.2009: d34 removed, snow introduced.
  * Mari Anne Killie, METNO/FOU, 08.09.2009: using 3 classes over land,
  * 3 over water and 4 over coast.
- *
+ * MAK, METNO/FOU, 19.12.2011: suddenly switching off class "snow"
+ * over land (near lakes) creates noise -> Reintroducing the option to
+ * use snow as 5th class in coastal zone, even though 5 classes did
+ * not seem optimal to prevent a row of misclassified pixels along the
+ * coast on the first try. Perhaps tuning of FMSNOWSEA and FMSNOWLAND will
+ * help. Adding SNOWSWITCH to easily test the effect of the 5th class.
+ * MAK, METNO/FOU, 19.12.2011: DTLIM added.
+ * 
  * CVS_ID:
- * $Id: probest.c,v 1.8 2010-11-25 10:17:17 mariak Exp $
+ * $Id: probest.c,v 1.9 2012-01-04 11:41:10 mariak Exp $
  */
 
 #include <stdio.h>
@@ -55,6 +62,14 @@
 #include <math.h>
 #include <string.h> 
 #include <fmsnowcover.h>
+
+#define SNOWSWITCH 0 /*0: no snow in "coast", 1: snow + ice in coast.  */
+
+#define DTLIM 273 /*Should perhaps be moved, but this decides wether
+		    dT-signature is used or not! 277 K, approx
+		    4celsius. DTLIM 273 used for OSI SAF. To easily
+		    remove this test, set DTLIM to 0!*/
+
 /* #undef FMSNOWCOVER_HAVE_LIBUSENWP */
 int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 
@@ -77,6 +92,15 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     } else {
       r3a1 = cpa.A3/cpa.A1; 
     }
+
+    /*Later, if needing to cut proc.time: sort the calculations below
+      under the following categories, i.e.: only calculate those that
+      will actually be used*/
+    /* if (cpa.lmask <= FMSNOWSEA) { /\*use classes sea, sea ice, cloud*\/ */
+    /* } else if (cpa.lmask >= FMSNOWLAND) { /\*classes land, snow, cloud*\/ */
+    /* } else { /\*use classes land, sea, snow, sea ice, cloud*\/ */
+    /* } */
+
 
     /*Ice and snow*/
     pa1gi = findprob( cof.ice.a1, cpa.A1/cos(fmdeg2rad(cpa.soz)),"ice a1");
@@ -133,6 +157,12 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     pdtgi = pdtgs = pdtgc = pdtgl = pdtgw = 1.;
     #endif
 
+    /*the pdtgX-test fails over ice/snow and should only be used when a positive model temperature. Tdiff = T_model - T_4*/
+    if(cpa.tdiff + cpa.T4 < DTLIM) {
+      pdtgi  = pdtgs  = pdtgc  = pdtgl  = pdtgw  = 1.;
+    }
+
+
     /*Used to easily remove signatures when testing*/
     /*pa1gi  = pa1gs  = pa1gc  = pa1gl  = pa1gw  = 1.;*/
     /*pr21gi = pr21gs = pr21gc = pr21gl = pr21gw = 1.;*/
@@ -140,7 +170,7 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
     /*pr3a1gi= pr3a1gs= pr3a1gc= pr3a1gl= pr3a1gw= 1.;*/
     /*pdtgi  = pdtgs  = pdtgc  = pdtgl  = pdtgw  = 1.;*/
 
-    if (cpa.lmask == FMSNOWSEA) { /*Water: use classes sea ice/water/cloud*/
+    if (cpa.lmask <= FMSNOWSEA) { /*Water: use classes sea ice/water/cloud*/
       if (cpa.daytime3b) {
 	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
 	          +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)
@@ -156,7 +186,7 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	p->pfree =(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)/denomsum;
 	p->pcloud=(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
       }
-    } else if (cpa.lmask == FMSNOWLAND) { /*Land: use classes snow/land/cloud*/
+    } else if (cpa.lmask >= FMSNOWLAND) { /*Land: use classes snow/land/cloud*/
       if (cpa.daytime3b) {
 	denomsum = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)
 	          +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
@@ -172,27 +202,27 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	p->pfree =(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)/denomsum;
 	p->pcloud=(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;
       }
-    } else { /*Coast: use classes ice/land/cloud/water*/
+    } else { /*Coast: use classes ice/land/snow/cloud/water*/
  
      if (cpa.daytime3b) {
 	denomsum = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
-	  /*denomsum = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)*/
+	  +(pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)*SNOWSWITCH
 	  +(pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
 	  +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater)
 	  +(pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud);
-	p->pice = (pr21gi*pr3b1gi*pa1gi*pdtgi*pice)/denomsum;
-	  /*p->pice = (pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)/denomsum;*/
+	p->pice = ((pr21gi*pr3b1gi*pa1gi*pdtgi*pice)
+		   +(pr21gs*pr3b1gs*pa1gs*pdtgs*psnow)*SNOWSWITCH)/denomsum;
 	p->pfree =((pr21gl*pr3b1gl*pa1gl*pdtgl*pland)
 		   +(pr21gw*pr3b1gw*pa1gw*pdtgw*pwater))/denomsum;
 	p->pcloud = (pr21gc*pr3b1gc*pa1gc*pdtgc*pcloud)/denomsum;
       } else {
 	denomsum = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
-	  /*denomsum = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)*/
+	  +(pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)*SNOWSWITCH
 	  +(pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
 	  +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater)
 	  +(pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud);
-	p->pice = (pr21gi*pr3a1gi*pa1gi*pdtgi*pice)/denomsum;
-	  /*p->pice = (pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)/denomsum;*/
+	p->pice = ((pr21gi*pr3a1gi*pa1gi*pdtgi*pice)
+		   +(pr21gs*pr3a1gs*pa1gs*pdtgs*psnow)*SNOWSWITCH)/denomsum;
 	p->pfree =((pr21gl*pr3a1gl*pa1gl*pdtgl*pland)
 		   +(pr21gw*pr3a1gw*pa1gw*pdtgw*pwater))/denomsum;
 	p->pcloud = (pr21gc*pr3a1gc*pa1gc*pdtgc*pcloud)/denomsum;

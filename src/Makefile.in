@@ -31,7 +31,7 @@
 # NA
 #
 # CVS_ID:
-# $Id: Makefile.in,v 1.5 2010-07-02 15:04:20 mariak Exp $
+# $Id: Makefile.in,v 1.6 2013-01-25 12:29:28 steingod Exp $
 #
 
 SHELL = /bin/sh
@@ -110,6 +110,6 @@ distclean:
 
 install:
 	install -d $(incdir)
-	install --mode=644 $(HEADER_FILES1) $(HEADER_FILES2) $(incdir)
+	install --mode=644 $(HEADER_FILES1) $(incdir)
 	install -d $(bindir)
 	install --mode=755 $(BINFILE1) $(BINFILE2) $(bindir)

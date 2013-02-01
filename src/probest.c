@@ -54,7 +54,7 @@
  * MAK, METNO/FOU, 19.12.2011: DTLIM added.
  * 
  * CVS_ID:
- * $Id: probest.c,v 1.10 2013-02-01 08:39:34 mariak Exp $
+ * $Id: probest.c,v 1.11 2013-02-01 10:37:06 mariak Exp $
  */
 
 #include <stdio.h>
@@ -153,7 +153,8 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	 +(pr21gc*pr31gc*pa1gc*pdtgc*pcloud));
     */
 
-    if (cpa.tdiff == NULL) {
+    /*if (cpa.tdiff == NULL) {*/
+    if (cpa.tdiff == 0) {
       pdtgi = pdtgs = pdtgc = pdtgl = pdtgw = 1.;
     }
 

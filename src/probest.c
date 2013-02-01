@@ -54,7 +54,7 @@
  * MAK, METNO/FOU, 19.12.2011: DTLIM added.
  * 
  * CVS_ID:
- * $Id: probest.c,v 1.9 2012-01-04 11:41:10 mariak Exp $
+ * $Id: probest.c,v 1.10 2013-02-01 08:39:34 mariak Exp $
  */
 
 #include <stdio.h>
@@ -65,7 +65,7 @@
 
 #define SNOWSWITCH 0 /*0: no snow in "coast", 1: snow + ice in coast.  */
 
-#define DTLIM 273 /*Should perhaps be moved, but this decides wether
+#define DTLIM 0 /*Should perhaps be moved, but this decides wether
 		    dT-signature is used or not! 277 K, approx
 		    4celsius. DTLIM 273 used for OSI SAF. To easily
 		    remove this test, set DTLIM to 0!*/
@@ -153,11 +153,11 @@ int probest(pinpstr cpa, probstr *p, statcoeffstr cof) {
 	 +(pr21gc*pr31gc*pa1gc*pdtgc*pcloud));
     */
 
-    #ifndef FMSNOWCOVER_HAVE_LIBUSENWP
-    pdtgi = pdtgs = pdtgc = pdtgl = pdtgw = 1.;
-    #endif
+    if (cpa.tdiff == NULL) {
+      pdtgi = pdtgs = pdtgc = pdtgl = pdtgw = 1.;
+    }
 
-    /*the pdtgX-test fails over ice/snow and should only be used when a positive model temperature. Tdiff = T_model - T_4*/
+    /*the pdtgX-test can fail over ice/snow and should only? be used when a positive model temperature. Fails over Greenland, but is needed over Norway..  Tdiff = T_model - T_4*/
     if(cpa.tdiff + cpa.T4 < DTLIM) {
       pdtgi  = pdtgs  = pdtgc  = pdtgl  = pdtgw  = 1.;
     }

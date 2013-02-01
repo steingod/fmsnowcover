@@ -13,7 +13,7 @@
  * fmsnowcover package.
  *
  * CVS_ID:
- * $Id: fmaccusnow.h,v 1.3 2010-07-02 15:06:49 mariak Exp $
+ * $Id: fmaccusnow.h,v 1.4 2013-02-01 08:42:19 mariak Exp $
  */
 
 #ifndef _FMACCUSNOW_H
@@ -28,7 +28,8 @@
 #include <fmutil.h>
 #include <fmio.h>
 #include <dirent.h>
-
+#include <netcdf.h>
+#include <lmask_defs_nc.h>
 /*
  * Useful constants
  */

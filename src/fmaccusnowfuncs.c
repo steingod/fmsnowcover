@@ -17,7 +17,7 @@
  * Øystein Godøy, METNO/FOU, 23.04.2009: More cleaning of software.
  *
  * CVS_ID:
- * $Id: fmaccusnowfuncs.c,v 1.2 2010-07-02 15:06:02 mariak Exp $
+ * $Id: fmaccusnowfuncs.c,v 1.3 2013-02-01 08:41:36 mariak Exp $
  */ 
 
 #include <fmaccusnow.h>
@@ -208,7 +208,6 @@ int average_merge_files(char **infAVHRRICE, int nrInput, fmucsref safucs,
       catclass[elem] = C_UNCLASS;
     }
     
-
 
     if (probice[elem] < 0.0) {
       probclass[elem] = 0;
